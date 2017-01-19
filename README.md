@@ -74,7 +74,7 @@ That's all the rules! Eventually there will be more, as more features are implem
 
 - This isn't a full game! Is this all there is?
   - So far, yes, this is all there is. The board game version, however, is much more feature-complete, and I intend to work at putting all those features in.
-- Why aren't you using <insert awesome Clojure/Quil feature>?
+- Why aren't you using \<insert awesome Clojure/Quil feature>?
   - I'm rather new to Clojure, so it's probably just because I don't know about it. If you know of something that would make my life easier, I'd love to hear about it!
 - Why is the code so poorly documented?
   - When I began this project, I just wanted to make something that worked as quickly as possible. Now that I've got that, I plan on improving the code and documentation that I have, as well as adding new features.
