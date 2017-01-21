@@ -36,15 +36,19 @@ The Specialization phase action hasn't been implemented yet. In the full game, t
 
 #### Production:
 
-In the Production phase, you can use your planets to generate resources. Resources are necessary to do pretty much anything, so this phase is quite important. Each planet has a production value that you can see by mousing over it. When you Produce with a planet, you gain that many resources. Having a core of good economic planets is extremely helpful when building a successfully angsty empire!
+In the Production phase, you can use your planets to generate resources. Resources are necessary to do pretty much anything, so this phase is quite important. Each planet has a production curve, which is a series of eight numbers that you can see by mousing over a planet. A planet's development level, marked by a circle around one of the production numbers, determines how many resources a planet will produce if you use it in the Production phase. At the end of each turn, all your planets' development levels will go up by one. Usually, this means they produce more resources, but some don't change, and some produce fewer resources as they develop.
+
+Uncolonized planets don't have a development level. When you colonize a planet, it'll start the next turn at the lowest development level, and keep increasing from there.
+
+Every time a planet is conquered, its development level is reduced by three - the infrastructure is destroyed and the workers revolt! 
 
 #### Command:
 
 In the Command phase, you get to move your ships around. This lets you colonize new planets, defend yourself, and (most importantly) conquer other players' planets. When you choose a planet to command with, you can then move any ships from any planets connected to it. You can move these ships to any planet connected to the planet they're on. For example, say you chose to command with Fignon. Algoa is connected to Fignon, so you can move ships from Algoa to any planet that's connected to Algoa. Since Jaid is also connected to Fignon, you can, with the same action, move ships from Jaid to any planet connected to Jaid. In fact, with a single command action, you can command as many ships as you want (provided they're connected to the planet you chose to command with) to as many planets as you want (provided they're connected to the planet you're moving the ships from).
 
-IMPORTANT: The game does not currently prevent you from moving the same ship twice in a single command. According to official Angst in Space rules, this is not allowed. However, if you command with two planets in the same turn, moving a ship one space with the first command, then moving it again with the second, IS allowed. If you really need to get a fleet across your empire fast, you can command with as many planets as you want, and move your ships that many spaces.
+With a single command action, you'll only be able to move ships one space. If you command with a second planet, however, you can move ships that you've already moved this turn. In fact, if you really need to send a fleet across the galaxy, you can use as many planets to command as you want, and move the fleet one space for each planet! This can get pricey, but it's sometimes a good idea when you want to take someone by surprise.
 
-Space travel is expensive. Each time you move a group of ships from one planet to another, it costs you one resource. Moving five ships is just as expensive as moving one, so plan your moves carefully!
+Space travel is expensive. When you move a group of ships between planets, you'll have to pay resources equal to the distance between them (distance is marked by dots along the connection line). Moving five ships is just as expensive as moving one, so plan your moves carefully!
 
 ##### Combat:
 
