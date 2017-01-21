@@ -1,8 +1,4 @@
-﻿<<<<<<< HEAD
 ﻿# Angst in Space
-=======
-# Angst in Space
->>>>>>> a72c02e97eee024cd25826857a64101ee44e16dc
 
 A WIP space strategy board game in Clojure disguised as a Quil sketch.
 
