@@ -16,7 +16,7 @@ REPL - run `(require 'angst.core)`.
 
 ## Gameplay
 
-You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old 'save.txt' with the new one, then click 'Load' to get the new gamestate.
+You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
 
 ### Objective:
 
