@@ -30,8 +30,8 @@
    :phase 0 ;0: Specialization, 1 Production, 2 Command, 3 Construction 
    ; Buttons coordinates given for center of button
    :buttons [{:label "End Specialization Phase"
-              :x (- (q/width) 150)
-              :y (- (/ (q/height) 2) 40) 
+              :x 1216
+              :y 344 
               :width 200
               :height 50}
              {:label "Save"
@@ -49,17 +49,14 @@
    :next-player-map {:Sheep :Gopher :Gopher :Muskox :Muskox :Llama :Llama :Sheep}
    })
 
-(defn empire [state]
-  ((:active state) (:empire state)))
-
 (defn over-planet? [x y]
-  (< (q/sqrt (+ (q/sq (- (q/mouse-x) x))
-                (q/sq (- (q/mouse-y) y))))
+  (< (q/sqrt (+ (q/sq (- (q/mouse-x) (scalex x)))
+                (q/sq (- (q/mouse-y) (scaley y)))))
       planet-rad))
 
 (defn over-button? [x y width height]
-  (and (< (- x (/ width 2)) (q/mouse-x) (+ x (/ width 2)))
-       (< (- y (/ height 2)) (q/mouse-y) (+ y (/ height 2)))))
+  (and (< (scalex (- x (/ width 2))) (q/mouse-x) (scalex (+ x (/ width 2))))
+       (< (scaley (- y (/ height 2))) (q/mouse-y) (scaley (+ y (/ height 2))))))
 
 (defn get-mouse-planet
   "Consumes (:planets state) seq and produces planet info-map if one is moused over and false if not"
@@ -100,15 +97,22 @@
 
 (defn reset-all-used [state]
   (reduce (fn [x y] (set-planet-value x y :used false))
-                     (get-next-player state)
+                     state
                      (map first (vec (:planets state)))))
+
+(defn develop-all [state]
+  (reduce (fn [x y] (update-planet-value x y :development #(min 7 (inc %))))
+                    state
+                    (map first (filter #(= (:colour (second %)) (:colour (empire state))) (vec (:planets state))))))
 
 (defn end-turn [state]
   (-> state
       reset-all-used
+      develop-all
       end-phase
       (update-empire-value (:active state) :resources
-        #(- % (get upkeep (get-num-planets state (:active state)))))))
+        #(- % (get upkeep (get-num-planets state (:active state)))))
+      get-next-player))
 
 (defn press-button [state button]
   (cond (= (:label button) "Done Command")
@@ -148,20 +152,6 @@
           [:phase] 3)) ;kinda kludgy
       :else state)))
 
-(comment (defn mouse-pressed [state event]
-  (let [planet (get-mouse-planet (seq (:planets state)))
-        button (get-mouse-button (:buttons state))]
-    (cond (and planet (or (= (:colour (empire state)) (-> state :planets planet :colour))
-                          (= (:phase state) "Colonization")
-                          (:commanding state)))
-           (let [newstate (planet-action state planet)]
-            (if (= newstate state)
-              state
-              (planet-action state planet)))
-          button
-           (press-button state button)
-          :else state))))
-
 (defn mouse-pressed [state event]
    (let [planet (get-mouse-planet (seq (:planets state)))
         button (get-mouse-button (:buttons state))]
@@ -194,20 +184,20 @@
   (draw-buttons state)
   (set-fill "White") (text-buttons state)
   ; Draw the planet connections
-  (set-fill "Green") (draw-connections state)
+  (draw-connections state)
   ; Draw the planets
   (doseq [p (seq (:planets state))]
     (set-fill (:colour (second p)))
-    (q/ellipse (:x (second p)) (:y (second p)) planet-rad planet-rad))
+    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) planet-rad planet-rad))
   ; Name the planets
   (q/text-align :center)
   (doseq [p (seq (:planets state))]
     (set-fill "White")
-    (q/text (:name (second p)) (:x (second p)) (- (:y (second p)) 15)))
+    (q/text (:name (second p)) (scalex (:x (second p))) (scaley (- (:y (second p)) 15))))
   ; Draw the ships
   (doseq [p (seq (:planets state))]
     (set-fill (:ship-colour (second p)))
-    (draw-ships (:x (second p)) (:y (second p)) (range (:ships (second p)))))
+    (draw-ships (scalex (:x (second p))) (scaley (:y (second p))) (range (:ships (second p)))))
   ; Diagnostics:
   )
 
@@ -219,7 +209,7 @@
   ; update-state is called on each iteration before draw-state.
   :update update-state
   :draw draw-state
-  :features []
+  :features [:resizable]
   :mouse-pressed mouse-pressed
   ; This sketch uses functional-mode middleware.
   ; Check quil wiki for more info about middlewares and particularly
