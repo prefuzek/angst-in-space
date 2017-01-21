@@ -68,7 +68,7 @@ If you have ships on uncolonized planets at the end of the turn, you get a bonus
 
 #### Upkeep:
 
-Managing large empire is hard and expensive work. At the end of your turn you will lose a certain amount of resources, calculated based on how many planets you control. You can see what your current upkeep rate is in the Empire display in the lower right of the screen, so you should never be taken by surprise. If you don't have enough resources, you'll dip into the negative, and you'll have to claw your way back up before you can build and move ships, or colonize planets!
+Managing a large empire is hard and expensive work. At the end of your turn you will lose a certain amount of resources, calculated based on how many planets you control. You can see what your current upkeep rate is in the Empire display in the lower right of the screen, so you should never be taken by surprise. If you don't have enough resources, you'll dip into the negative, and you'll have to claw your way back up before you can build and move ships, or colonize planets!
 
 ### Ending the game:
 
