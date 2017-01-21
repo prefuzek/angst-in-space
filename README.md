@@ -1,4 +1,8 @@
+﻿<<<<<<< HEAD
 ﻿# Angst in Space
+=======
+# Angst in Space
+>>>>>>> a72c02e97eee024cd25826857a64101ee44e16dc
 
 A WIP space strategy board game in Clojure disguised as a Quil sketch.
 
@@ -16,7 +20,7 @@ REPL - run `(require 'angst.core)`.
 
 ## Gameplay
 
-You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old 'save.txt' with the new one, then click 'Load' to get the new gamestate.
+You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
 
 ### Objective:
 
@@ -74,10 +78,12 @@ That's all the rules! Eventually there will be more, as more features are implem
 
 - This isn't a full game! Is this all there is?
   - So far, yes, this is all there is. The board game version, however, is much more feature-complete, and I intend to work at putting all those features in.
-- Why aren't you using <insert awesome Clojure/Quil feature>?
+- Why is everything ugly/askew?
+  - If your screen resolution is different then mine, the planet map might not fit properly and some button placement might be off. This will be fixed soon. If the planet map fits fine, and and the button placement looks normal, then maybe you just don't like my minimalist design.
+- Why aren't you using \<insert awesome Clojure/Quil feature>?
   - I'm rather new to Clojure, so it's probably just because I don't know about it. If you know of something that would make my life easier, I'd love to hear about it!
 - Why is the code so poorly documented?
-  - When I began this project, I just wanted to make something that worked as quickly as possible. Now that I've got that, I plan on improving the code and documentation that I have, as well as adding new features.
+  - When I began this project, I just wanted to make something that worked as quickly as possible. Now that I've got that, I plan on improving the code and documentation that I have, in addition to adding new features.
 - Why angst?
   - The game's title is the name of a movie that's mentioned in passing in Douglas Adams' novel Life, the Universe, and Everything. It's not really intended to mean anything, but it occasionally describes the attitudes of a player rather accurately.
 
