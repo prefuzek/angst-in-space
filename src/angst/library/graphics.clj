@@ -42,8 +42,8 @@
     (if (and (not= distance 0))
       (dotimes [n distance]
           (set-fill "Black")
-          (q/ellipse (+ x1 (* n (/ (- x2 x1) distance)))
-                     (+ y1 (* n (/ (- y2 y1) distance)))
+          (q/ellipse (+ (scalex x1) (* n (/ (- (scalex x2) (scalex x1)) distance)))
+                     (+ (scaley y1) (* n (/ (- (scaley y2) (scaley y1)) distance)))
                      5 5)))))
 
 (defn draw-connections [state]
@@ -53,10 +53,10 @@
               (scaley (:y (second p)))
               (scalex (:x (q (:planets state))))
               (scaley (:y (q (:planets state)))))
-      (draw-distance (scalex (:x (second p)))
-                     (scaley (:y (second p)))
-                     (scalex (:x (q (:planets state))))
-                     (scaley (:y (q (:planets state))))))))
+      (draw-distance (:x (second p))
+                     (:y (second p))
+                     (:x (q (:planets state)))
+                     (:y (q (:planets state)))))))
 
 (defn draw-ships [x y ships]
   (doseq [s ships]

@@ -203,7 +203,7 @@
 
 (q/defsketch angst
   :title "Angst in Space"
-  :size :fullscreen
+  :size [1300 700]
   ; setup function called only once, during sketch initialization.
   :setup setup
   ; update-state is called on each iteration before draw-state.

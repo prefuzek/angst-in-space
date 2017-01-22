@@ -1,4 +1,4 @@
-(defproject angst "0.2.0-SNAPSHOT"
+(defproject angst "0.2.1-SNAPSHOT"
   :description "A space strategy board game for four players"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
