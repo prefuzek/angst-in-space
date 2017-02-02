@@ -1,22 +1,9 @@
 (ns angst.library.graphics
   (:require [quil.core :as q]
-            [quil.middleware :as m]))
+            [quil.middleware :as m]
+            [angst.library.utils :refer :all]))
 
-(def upkeep [0 0 0 1 1 2 3 4 5 6 7 8 10 12 14 16])
 (def infobar-width 300)
-
-(defn scaley
-  "Scales a number to the user's screen height"
-  [n]
-  (* n (/ (q/height) 768)))
-
-(defn scalex
-  "Scales a number to the user's screen width"
-  [n]
-  (* n (/ (q/width) 1366)))
-
-(defn empire2 [state]
-  ((:active state) (:empire state)))
 
 (defn set-fill [colour]
   (cond (= colour "Blue")
@@ -29,12 +16,10 @@
       (q/fill 100 360 200)
     (= colour "Red")
       (q/fill 0 255 255)
+    (= colour "Pink")
+      (q/fill 220 255 255)
     (= colour "Black")
       (q/fill 0 0 0)))
-
-(defn get-distance
-  [x1 y1 x2 y2]
-  (int (max 1 (quot (- (q/sqrt (+ (q/sq (- x1 x2)) (q/sq (- y1 y2)))) 80) 33))))
 
 (defn draw-distance
   [x1 y1 x2 y2]
@@ -68,17 +53,14 @@
   (doseq [t (seq text-map)]
     (q/text-align (:align (second t)))
     (q/text-size (:size (second t)))
-    (q/text (first t) (+ x (:x (second t))) (+ y (:y (second t))))))
+    (q/text (first t) (+ x (:x (second t))) (+ y (:y (second t)))))
+  (q/text-size 12))
 
 (defn get-unused-planets
   "Produces a seq of the name strings of planets current empire controls that haven't been used"
   [state]
-  (map :name (filter #(and (not (:used %)) (= (:colour (empire2 state)) (:colour %)))
+  (map :name (filter #(and (not (:used %)) (= (:colour (empire state)) (:colour %)))
   					(map second (seq (:planets state))))))
-
-(defn get-num-planets [state empire]
-  (let [colour (:colour (empire (:empire state)))]
-    (count (filter #(= (:colour %) colour) (map second (seq (:planets state)))))))
 
 (defn get-command-message [state]
 	(cond (:ship-move state)
@@ -107,11 +89,13 @@
                  (str "Production:  " (clojure.string/join "  " (:production planet))) {:align :left :x 20 :y 75 :size 12}}
                 (scalex 1066)
                 0)))
-  (text-display {(str (:name (empire2 state)) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
-                 (str "Resources: " (:resources (empire2 state))) {:align :left :x 20 :y 50 :size 12}
-                 (str "Upkeep: " (get upkeep (get-num-planets state (:active state)))) {:align :left :x 20 :y 75 :size 12}
+  (text-display {(str (:name (empire state)) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
+                 (:major (empire state)) {:align :center :x (scalex 150) :y 42 :size 12}
+                 (str "Resources: " (:resources (empire state))) {:align :left :x 20 :y 60 :size 12}
+                 (str "Victory Points:" (:vp (empire state))) {:align :left :x 20 :y 80 :size 12}
+                 (str "Upkeep: " (get upkeep (get-num-planets state (:active state)))) {:align :left :x 20 :y 100 :size 12}
                  (str "Unused Planets:\n" (apply str (map #(str % "\n") (get-unused-planets state))))
-                    {:align :left :x 20 :y 100 :size 12}}
+                    {:align :left :x 20 :y 120 :size 12}}
                  (scalex 1066)
                  (scaley 384))
   (let [message (cond (= (:phase state) 0)
@@ -140,3 +124,42 @@
 (defn text-buttons [state]
   (doseq [b (:buttons state)]
     (q/text (:label b) (scalex (:x b)) (scaley (:y b)))))
+
+(defn draw-setup [state]
+  (q/background 0)
+  (text-display {"Angst In Space" {:align :center :x (scalex 683) :y (scaley 100) :size 40}
+           "Options" {:align :center :x (scalex 883) :y (scaley 200) :size 20}
+           "Empires" {:align :center :x (scalex 483) :y (scaley 200) :size 20}} 0 0)
+  (draw-buttons state)
+  (set-fill "White") (text-buttons state))
+ 
+(defn draw-game [state]
+  (q/background 0)
+  ; Draw the infobar
+  (set-fill "White") (draw-infobar state)
+  ; Draw all buttons
+  (draw-buttons state)
+  (set-fill "White") (text-buttons state)
+  ; Draw the planet connections
+  (draw-connections state)
+  ; Draw the planets
+  (doseq [p (seq (:planets state))]
+    (set-fill (:colour (second p)))
+    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) 20 20))
+  ; Name the planets
+  (q/text-align :center)
+  (doseq [p (seq (:planets state))]
+    (set-fill "White")
+    (q/text (:name (second p)) (scalex (:x (second p))) (scaley (- (:y (second p)) 15))))
+  ; Draw the ships
+  (doseq [p (seq (:planets state))]
+    (set-fill (:ship-colour (second p)))
+    (draw-ships (scalex (:x (second p))) (scaley (:y (second p))) (range (:ships (second p)))))
+  ; Diagnostics:
+  )
+
+(defn draw-state
+  [state]
+  (if (= (:phase state) "setup")
+      (draw-setup state)
+    (draw-game state)))

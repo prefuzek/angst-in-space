@@ -1,5 +1,3 @@
-(ns angst.library.planets)
-
 (def planet-map
   {:Petiska {:name "Petiska" :colour "Black" :x 85 :y 48
   			 :connections [:Henz :Shoran :Kazo] :ships 0 :moved 0 :ship-colour "Black"

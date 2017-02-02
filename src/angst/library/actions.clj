@@ -1,35 +1,13 @@
 (ns angst.library.actions
   (:require [quil.core :as q]
             [quil.middleware :as m]
-            [angst.library.graphics :as g]))
-
-(defn empire [state]
-  ((:active state) (:empire state)))
+            [angst.library.victory :as v]
+            [angst.library.utils :refer :all]))
 
 (defn connected?
   "Checks if two planets are connected"
   [state planet1 planet2]
-  (some #(= % planet1) (-> state :planets planet2 :connections)))
-
-(defn set-planet-value
-	"Assocs value with type in planet info"
-	[state planet type value]
-	(assoc-in state [:planets planet type] value))
-
-(defn update-planet-value
-	"Updates planet info type according to fun"
-	[state planet type fun]
-	(update-in state [:planets planet type] fun))
-
-(defn set-empire-value
-	"Assocs value with type in empire info"
-	[state empire type value]
-	(assoc-in state [:empire empire type] value))
-
-(defn update-empire-value
-	"Updates empire info type according to fun"
-	[state empire type fun]
-	(update-in state [:empire empire type] fun))
+  (member? planet1 (-> state :planets planet2 :connections)))
 
 (defn colonize [state planet]
   (if (and (= (-> state :planets planet :colour) "Black")
@@ -93,16 +71,19 @@
 		(if (> surviving 0)
 			(-> state
 				(update-in [:empire (:active state) :resources] #(- % (dec distance)))
-				(set-planet-value to-planet :ships surviving)
-				(set-planet-value to-planet :moved surviving)
+        (v/add-points (:active state) (inc (:ships to-info)) (= (:major (empire state)) "Warlords"))
+        (v/add-points (:active state) 3 (= (:major (empire state)) "Conquistadores"))
+        (v/add-points (:active state) 2 (= (:major (empire state)) "Slavers"))
+        (v/add-points (get-colour-empire (:colour to-info)) -2 (= (:major (empire state)) "Slavers"))
+        (update-in [:planets to-planet] #(merge % {:ships surviving :moved surviving
+                                                    :colour (:ship-colour from-info)
+                                                    :ship-colour (:ship-colour from-info) :used true}))
 				(update-planet-value from-planet :ships #(- % ship-num))
-				(set-planet-value to-planet :colour (:ship-colour from-info))
-				(set-planet-value to-planet :ship-colour (:ship-colour from-info))
-				(set-planet-value to-planet :used true)
 				(update-planet-value to-planet :development #(max 0 (- % 3)))
 				(assoc-in [:ship-move] false))
 			(-> state
 				(update-in [:empire (:active state) :resources] #(- % (dec distance)))
+        (v/add-points (:active state) (:ships from-info) (= (:major (empire state)) "Warlords"))
 				(set-planet-value to-planet :ships (max 0 (- (inc surviving))))
 				(update-planet-value from-planet :ships #(- % ship-num))
 				(assoc-in [:ship-move] false)))
@@ -113,7 +94,7 @@
         ship-num (-> state :ship-move :ships)
         to-info (-> state :planets to-planet)
         from-info (-> state :planets from-planet)
-        distance (g/get-distance (:x from-info)	(:y from-info) (:x to-info) (:y to-info))]
+        distance (get-distance (:x from-info)	(:y from-info) (:x to-info) (:y to-info))]
   (if (= to-planet from-planet)
     (if (> (- (:ships to-info) (:moved to-info)) ship-num) ; Prevents moving more ships than exist
       (update-in state [:ship-move :ships] inc) ; Increases number of ships moving

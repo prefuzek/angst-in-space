@@ -1,70 +1,31 @@
 (ns angst.core
   (:require [quil.core :as q]
             [quil.middleware :as m]
-            [angst.library.planets :refer :all]
+            [angst.library.data :refer :all]
             [angst.library.graphics :refer :all]
-            [angst.library.actions :refer :all])
+            [angst.library.actions :refer :all]
+            [angst.library.victory :refer :all]
+            [angst.library.utils :refer :all]
+            [angst.library.setup :refer :all])
   (:gen-class))
-
-(def planet-rad 20)
-
-(defn setup []
-  ; Set frame rate to 10 frames per second.
-  (q/frame-rate 10)
-  ; Set color mode to HSB (HSV) instead of default RGB.
-  (q/color-mode :hsb)
-  ; Set line color to grey
-  (q/stroke 100)
-  ;Set text preferences
-  (q/text-align :center)
-  (q/text-size 12)
-  ; Initialize state
-  {:planets planet-map
-   :display {:planet false
-             :infobar-width 300}
-   :empire {:Sheep {:name "Sheep" :colour "Blue" :resources 8}
-            :Gopher {:name "Gopher" :colour "Green" :resources 8}
-            :Muskox {:name "Muskox" :colour "Red" :resources 8}
-            :Llama {:name "Llama" :colour "Yellow" :resources 8}}
-   :active :Sheep
-   :phase 0 ;0: Specialization, 1 Production, 2 Command, 3 Construction 
-   ; Buttons coordinates given for center of button
-   :buttons [{:label "End Specialization Phase"
-              :x 1216
-              :y 344 
-              :width 200
-              :height 50}
-             {:label "Save"
-              :x 950
-              :y 40
-              :width 80
-              :height 40}
-             {:label "Load"
-              :x 850
-              :y 40
-              :width 80
-              :height 40}]
-   :commanding false ; Either false or planet keyword
-   :ship-move false ; Either false or {:planet :numships}
-   :next-player-map {:Sheep :Gopher :Gopher :Muskox :Muskox :Llama :Llama :Sheep}
-   })
 
 (defn over-planet? [x y]
   (< (q/sqrt (+ (q/sq (- (q/mouse-x) (scalex x)))
                 (q/sq (- (q/mouse-y) (scaley y)))))
-      planet-rad))
+      20))
 
 (defn over-button? [x y width height]
   (and (< (scalex (- x (/ width 2))) (q/mouse-x) (scalex (+ x (/ width 2))))
        (< (scaley (- y (/ height 2))) (q/mouse-y) (scaley (+ y (/ height 2))))))
 
 (defn get-mouse-planet
-  "Consumes (:planets state) seq and produces planet info-map if one is moused over and false if not"
-  [vec-seq]
-  (cond (empty? vec-seq) false
+  "Consumes (:planets state) seq and produces planet info-map if one is moused over and false if not, or if the game is in setup phase"
+  [vec-seq state]
+  (cond (= (:phase state) "setup") false
+  		(empty? vec-seq) false
         (over-planet? (-> vec-seq first second :x) (-> vec-seq first second :y))
         (first (first vec-seq))
-        :else (get-mouse-planet (rest vec-seq))))
+        :else (get-mouse-planet (rest vec-seq) state)))
 
 (defn get-mouse-button 
   "Produces a button if one is moused over and otherwise false"
@@ -74,7 +35,9 @@
         (first buttons)
         :else (get-mouse-button (rest buttons))))
 
-(defn planet-action [state planet]
+(defn planet-action
+  "Performs an action on a planet based on the current phase"
+  [state planet]
   (if (-> state :planets planet :used)
       state
       (cond
@@ -89,32 +52,44 @@
         :else state)))
 
 (defn end-phase [state]
+	"Cycles between the four main phases"
   (update-in state [:phase] #(mod (inc %) 4)))
 
-(defn get-next-player [state]
-  (let [next-player-map {:Sheep :Gopher :Gopher :Muskox :Muskox :Llama :Llama :Sheep}]
-    (assoc-in state [:active] ((:active state) next-player-map))))
+(defn get-next-player
+  "Changes the active player"
+  [state]
+   (assoc-in state [:active] ((:active state) (:next-player-map state))))
 
-(defn reset-all-used [state]
+(defn reset-all-used
+	"Sets all planets to :used false"
+	[state]
   (reduce (fn [x y] (set-planet-value x y :used false))
                      state
                      (map first (vec (:planets state)))))
 
-(defn develop-all [state]
+(defn develop-all
+	"Increases all the active player's planets development by one"
+  [state]
   (reduce (fn [x y] (update-planet-value x y :development #(min 7 (inc %))))
                     state
                     (map first (filter #(= (:colour (second %)) (:colour (empire state))) (vec (:planets state))))))
 
-(defn end-turn [state]
+(defn end-turn
+	"Performs end-of-turn updates"
+	[state]
   (-> state
       reset-all-used
       develop-all
       end-phase
       (update-empire-value (:active state) :resources
         #(- % (get upkeep (get-num-planets state (:active state)))))
-      get-next-player))
+      (add-points (:active state) 1 (= (:major (empire state)) "Immortals"))
+      get-next-player
+      imperial-points))
 
-(defn press-button [state button]
+(defn press-game-button
+  "Performs the actions associated with various buttons"
+  [state button]
   (cond (= (:label button) "Done Command")
           (-> state
               (assoc-in [:buttons 0 :label] "End Command Phase")
@@ -129,6 +104,8 @@
           state)
         (= (:label button) "Load")
           (load-file "save.txt")
+        (= (:label button) "Quit")
+          setup-state
         :else
     (cond (= (:phase state) 0)
         (end-phase (assoc-in state [:buttons 0 :label] "End Production Phase"))
@@ -149,11 +126,36 @@
       (= (:phase state) "Colonization")
         (end-turn (assoc-in
           (assoc-in state [:buttons 0 :label] "End Specialization Phase")
-          [:phase] 3)) ;kinda kludgy
+          [:phase] 3)) ;kinda kludgy but works
       :else state)))
 
+(defn press-setup-button
+	"Handles button presses in the setup phase"
+	[state button]
+	(cond (and (= (:label button) "Start new game!") (> (count (:empires state)) 1))
+			(new-game state)
+		  (= (:label button) "Load from save")
+		  	(load-file "save.txt")
+		  (clojure.string/includes? (:label button) ": No")
+		    (-> state
+		    	(update-in [:empires] #(conj % (:empire button)))
+		    	(update-in [:buttons (:index button) :label] #(clojure.string/replace % #": No" ": Yes")))
+		  (clojure.string/includes? (:label button) ": Yes")
+		  	(-> state
+		    	(update-in [:empires] #(disj % (:empire button)))
+		    	(update-in [:buttons (:index button) :label] #(clojure.string/replace % #": Yes" ": No")))
+	      (clojure.string/includes? (:label button) ": Off")
+		  	(-> state
+		    	(update-in [:options] #(conj % (:option button)))
+		    	(update-in [:buttons (:index button) :label] #(clojure.string/replace % #": Off" ": On")))
+		  (clojure.string/includes? (:label button) ": On")
+		  	(-> state
+		    	(update-in [:empires] #(disj % (:option button)))
+		    	(update-in [:buttons (:index button) :label] #(clojure.string/replace % #": On" ": Off")))
+		  :else state))
+
 (defn mouse-pressed [state event]
-   (let [planet (get-mouse-planet (seq (:planets state)))
+   (let [planet (get-mouse-planet (seq (:planets state)) state)
         button (get-mouse-button (:buttons state))]
     (cond planet
             (cond
@@ -169,41 +171,17 @@
                     (set-planet-value planet :used true))
               :else state)
           button
-            (press-button state button)
+          	(if (= (:phase state) "setup")
+          		  (press-setup-button state button)
+            	(press-game-button state button))
           :else state)))
 
 (defn update-state [state]
-  (assoc-in state [:display :planet] (get-mouse-planet (seq (:planets state)))))
- 
-(defn draw-state [state]
-  ; Clear the sketch by filling it with light-grey color.
-  (q/background 0)
-  ; Draw the infobar
-  (set-fill "White") (draw-infobar state)
-  ; Draw all buttons
-  (draw-buttons state)
-  (set-fill "White") (text-buttons state)
-  ; Draw the planet connections
-  (draw-connections state)
-  ; Draw the planets
-  (doseq [p (seq (:planets state))]
-    (set-fill (:colour (second p)))
-    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) planet-rad planet-rad))
-  ; Name the planets
-  (q/text-align :center)
-  (doseq [p (seq (:planets state))]
-    (set-fill "White")
-    (q/text (:name (second p)) (scalex (:x (second p))) (scaley (- (:y (second p)) 15))))
-  ; Draw the ships
-  (doseq [p (seq (:planets state))]
-    (set-fill (:ship-colour (second p)))
-    (draw-ships (scalex (:x (second p))) (scaley (:y (second p))) (range (:ships (second p)))))
-  ; Diagnostics:
-  )
+  (assoc-in state [:display :planet] (get-mouse-planet (seq (:planets state)) state)))
 
 (q/defsketch angst
   :title "Angst in Space"
-  :size [1300 700]
+  :size :fullscreen
   ; setup function called only once, during sketch initialization.
   :setup setup
   ; update-state is called on each iteration before draw-state.

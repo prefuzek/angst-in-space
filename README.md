@@ -18,13 +18,29 @@ REPL - run `(require 'angst.core)`.
 
 You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
 
-### Objective:
-
-Well, right now there isn't really one. I guess you can try to completely dominate the galaxy, but that would end up getting very long and tedious. Hopefully a victory condition will be added soon (if nothing else, a simple placeholder measure of success).
-
 ### Setup:
 
-It's all done for you when you launch the game. Four players, four empires: the Sheep Empire (Blue), the Gopher Empire (Green), the Muskox Empire (Red), and the Llama Empire (Yellow). Each empire starts with two planets and 8 resources.
+When you start the game, you'll be given a menu with options for starting a new game. There are five available empires - to start a game you must choose at least two. There are two additional options that you can toggle: Random Start and Objectives. 
+
+When you start the game, it will generate a galaxy based on how many empires are playing the game. If Random Start is turned on, each empire will start with two random connected planets. If it is left off, the game will use a pre-made setup (almost certainly more balanced than a random start). One of each player's planets will start with a higher development level.
+
+If Objectives are turned on, each player will be given a random Objective (see below). No matter what options you choose, the game will start with each player having two connected planets and eight resources.
+
+### Objective:
+
+If you have Objectives turned on, each empire will be assigned a victory condition at random. These determine how a player gets victory points (VP). The possible goals are:
+
+- Conquistadores: Gain 3 VP each time you conquer an enemy planet
+- Warlords: Gain 1 VP for each enemy ship you destroy and each planet you conquer
+- Imperialists: Gain 1 VP for each empire with fewer planets than you at the begnning of each turn.
+- Immortals: Gain 2 VP at the beginning of each turn.
+- Slavers: Whenever you conquer an enemy planet, you gain 2 VP and they lose 2 VP.
+
+NOTE: These are a work in progress, and may be unbalanced depending on the number of players.
+
+So far, the game doesn't have a built-in end, but if you want you can agree to play until a certain number of rounds or VP. If you do, give each player 2 VP for each planet they control when the game ends. As you may have guessed, the player with the most VP is the winner.
+
+If Victory Goals was turned off, there is no victory condition. You can do whatever you want without feeling restricted by some arbitrary measure of success!
 
 ### Taking your turn:
 
