@@ -49,11 +49,11 @@
 		  3 [[:Brahms :Uchino] [:Path :Lisst] [:Bhowmik :Dengras]]
 		  4 [[:Odyssey :Uchino] [:Path :Quinz] [:Erasmus :Iago] [:Bhowmik :Walden]]
 		  5 [[:Erasmus :Froya] [:Path :Byrd] [:Chiu :Henz] [:Bhowmik :Walden] [:Valeria :Uchino]]}
-		  align-planets (fn [x y] {(first y) (merge ((first y) (planet-maps (count (:empire state)))) {:colour (:colour (second x))
+		  align-planets (fn [x y] {(first y) (merge ((first y) (:planets state)) {:colour (:colour (second x))
 		  																		 :ship-colour (:colour (second x))
 		  																		 :ships 1
 		  																		 :development 3})
-		  						   (second y) (merge ((second y) (planet-maps (count (:empire state)))) {:colour (:colour (second x))
+		  						   (second y) (merge ((second y) (:planets state)) {:colour (:colour (second x))
 		  																		 :ship-colour (:colour (second x))
 		  																		 :ships 1
 		  																		 :development 0})})]
@@ -71,11 +71,20 @@
 				  :active (first empires)
 				  :next-player-map (get-next-player-map (vec empires))}))
 
+(defn get-planets
+	[state]
+	(let [planet-map (-> all-planets
+						(select-keys (keys (planet-maps (count (:empire state)))))
+						(#(reduce-kv (fn [m k v] (update-in m [k] (fn [x] (merge x (hash-map :connections v))))) % (planet-maps (count (:empire state))))))]
+	(if (= (count (:empire state)) 5)
+		(assoc-in state [:planets] all-planets)
+		(assoc-in state [:planets] planet-map))))
+
 (defn new-game
 	"Launches a new game according to settings"
 	[state]
 	(let [add-players (set-players init-state (:empires state))
-		  add-planets (assoc-in add-players [:planets] (planet-maps (count (:empires state))))]
+		  add-planets (get-planets add-players)]
 	(if (member? "rand-start" (:options state))
 		(if (member? "goals" (:options state))
 			  (rand-start-planets (set-goals add-planets))
@@ -85,8 +94,8 @@
 			(fixed-start-planets add-planets)))))
 
 (defn setup []
-  ; Set frame rate to 10 frames per second.
-  (q/frame-rate 10)
+  ; Set frame rate to 20 frames per second.
+  (q/frame-rate 20)
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb)
   ; Set line color to grey

@@ -47,13 +47,25 @@
   (doseq [s ships]
       (q/ellipse (+ x (* -3 (count ships)) (* s 6) 3) (+ y 15) 5 5)))
 
+(defn draw-planets [state]
+  (doseq [p (seq (:planets state))]
+    (set-fill (:colour (second p)))
+    (if (and (= (:colour (second p)) (:colour (empire state))) (not (:used (second p))))
+      (do
+      (q/stroke 0 0 255)
+      (q/stroke-weight 2)))
+    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) 20 20)
+    (q/stroke 0 0 100)
+    (q/stroke-weight 1)))
+
 (defn text-display
   "Consumes a map giving relative alignments and locations of text, and draws it at a given location"
   [text-map x y]
   (doseq [t (seq text-map)]
-    (q/text-align (:align (second t)))
-    (q/text-size (:size (second t)))
-    (q/text (first t) (+ x (:x (second t))) (+ y (:y (second t)))))
+    (if (string? (first t)) (do
+     (q/text-align (:align (second t)))
+     (q/text-size (:size (second t)))
+     (q/text (first t) (+ x (:x (second t))) (+ y (:y (second t)))))))
   (q/text-size 12))
 
 (defn get-unused-planets
@@ -62,13 +74,25 @@
   (map :name (filter #(and (not (:used %)) (= (:colour (empire state)) (:colour %)))
   					(map second (seq (:planets state))))))
 
-(defn get-command-message [state]
-	(cond (:ship-move state)
-			(str "Moving " (:ships (:ship-move state)) " ships from " (:name ((:planet (:ship-move state)) (:planets state))))
-		  (:commanding state)
-		  	(str "Commanding with " (:name ((:commanding state) (:planets state)))
-		  		"\nChoose a connected planet to move ships from")
-		  :else "Choose a planet to command with"))
+(defn get-message [state]
+  (cond 
+    (:ship-move (:effects state))
+                  (str "Moving " (:ships (:ship-move (:effects state))) " ships from " (:name ((:planet (:ship-move (:effects state))) (:planets state))))
+    (= (:phase state) 0)
+       (if (:active-planet state)
+           (str "Select target for " (:name ((:active-planet state) (:planets state))))
+           "Click on planets to use their abilities")
+    (= (:phase state) 1)
+       "Click on planets to gain resources"
+    (= (:phase state) 2)
+       (if (:active-planet state)
+           (str "Commanding with " (:name ((:active-planet state) (:planets state))) "\nChoose a connected planet to move ships from")
+           "Choose a planet to command with")
+    (= (:phase state) 3)
+        "Click on planets to build ships"
+    (= (:phase state) 4)
+       "Choose planets to colonize"
+    :else "Something's wrong..."))
 
 (defn draw-infobar [state]
   ;vertical line
@@ -86,7 +110,10 @@
           (set-fill "White")))
       (text-display {(:name planet) {:align :center :x (scalex 150) :y 20 :size 18}
                  (str "Ships: " (:ships planet)) {:align :left :x 20 :y 50 :size 12}
-                 (str "Production:  " (clojure.string/join "  " (:production planet))) {:align :left :x 20 :y 75 :size 12}}
+                 (str "Production:  " (clojure.string/join "  " (:production planet))) {:align :left :x 20 :y 75 :size 12}
+                 (str (split-text-lines (:ability planet) (scalex 260))) {:align :left :x 20 :y 125 :size 12}
+                 (if (:project planet) (str "Project: " (if (= (:project planet) "inactive") "Inactive" (str (:progress planet) "\u00a7"))))
+                 (if (:project planet) {:align :left :x 20 :y 100 :size 12})}
                 (scalex 1066)
                 0)))
   (text-display {(str (:name (empire state)) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
@@ -98,17 +125,7 @@
                     {:align :left :x 20 :y 120 :size 12}}
                  (scalex 1066)
                  (scaley 384))
-  (let [message (cond (= (:phase state) 0)
-  						"Click on planets to use their abilities"
-  					  (= (:phase state) 1)
-  					  	"Click on planets to gain resources"
-  					  (= (:phase state) 2)
-  					  	(get-command-message state)
-  					  (= (:phase state) 3)
-  					  	"Click on planets to build ships"
-  					  (= (:phase state) "Colonization")
-  					  	"Choose planets to colonize"
-  					  :else "Something's wrong...")]
+  (let [message (get-message state)]
   	(text-display {message {:align :center :x 0 :y 0 :size 12}}
   				  (scalex 1216)
   				  (scaley 284))))
@@ -117,12 +134,12 @@
   (q/rect-mode :center)
   (q/text-align :center)
   (q/no-fill)
-  (doseq [b (:buttons state)]
+  (doseq [b (map second (vec (:buttons state)))]
     (q/rect (scalex (:x b)) (scaley (:y b)) (scalex (:width b)) (scaley (:height b)) 10))
   (q/fill 255))
 
 (defn text-buttons [state]
-  (doseq [b (:buttons state)]
+  (doseq [b (map second (vec (:buttons state)))]
     (q/text (:label b) (scalex (:x b)) (scaley (:y b)))))
 
 (defn draw-setup [state]
@@ -143,9 +160,7 @@
   ; Draw the planet connections
   (draw-connections state)
   ; Draw the planets
-  (doseq [p (seq (:planets state))]
-    (set-fill (:colour (second p)))
-    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) 20 20))
+  (draw-planets state)
   ; Name the planets
   (q/text-align :center)
   (doseq [p (seq (:planets state))]
