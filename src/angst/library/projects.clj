@@ -34,6 +34,6 @@
 	"Adds planet to project effects list, sets it to active, and adds initial progress"
 	[state planet]
 	(-> state
-		(update-in [:constant-effects :projects] #(cons planet %))
+		(update-in [:constant-effects :projects] #(vec (cons planet %)))
 	    (assoc-in [:planets planet :project] "active")
 		(start-progress planet)))

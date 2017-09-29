@@ -74,6 +74,12 @@
 	[state planet]
 	(get-colour-empire (:colour (planet (:planets state)))))
 
+(defn get-planet-ship-empire
+	"Produces the empire (a keyword) that has ships on a planet"
+	[state planet]
+	(if (= (-> state :planets planet :ships) 0) "Black"
+		(get-colour-empire (:ship-colour (planet (:planets state))))))
+
 (defn planet-active?
 	"Predicate to check if planet belongs to active player"
 	[state planet]
@@ -87,7 +93,7 @@
 (defn same-empire?
 	"Checks if two planets are controlled by the same empire"
 	[state p1 p2]
-	(= (get-planet-empire p1) (get-planet-empire p2)))
+	(= (get-planet-empire state p1) (get-planet-empire state p2)))
 
 (defn develop-all
 	"Increases all the active player's planets development by one"
@@ -241,17 +247,17 @@
 
 (defn planet-defense
 	[state planet]
-	(let [modifiers {:Zellner (if (and (same-empire? planet :Zellner)
+	(let [modifiers {:Zellner (if (and (same-empire? state planet :Zellner)
 										(< (get-connected-distance state :Zellner planet) (-> state :planets :Zellner :progress)))
 									1 0)
 					 :Path (if (= (:Path (:effect-details state)) planet)
 					 			2 0)
-					 :Thalia (if (same-empire? planet :Thalia)
+					 :Thalia (if (same-empire? state planet :Thalia)
 					 	(quot (-> state :planets :Thalia :progress) 3)
 					 	0)
 					 :Quinz (if (= (:Quinz (:effect-details state)) planet)
 					 	-1 0)
-					 :Froya (if (same-empire? planet :Froya)
+					 :Froya (if (same-empire? state planet :Froya)
 					 	1 0)}]
 		(max 0 (reduce-kv #(if (effect-active? state %2) (+ %1 %3) %1) (-> state :planets planet :ships) modifiers))))
 
@@ -287,7 +293,7 @@
 		   (cond (empty? words)
 		   			newtext
 		   		 (> (q/text-width (str newtext (first words) " ")) width)
-		   		 	(recur (rest words) (str newtext "\n" (first words)))
+		   		 	(recur (rest words) (str newtext "\n" (first words) " "))
 		   		 :else (recur (rest words) (str newtext (first words) " ")))))
 
 (defmacro thrush-list

@@ -14,6 +14,7 @@
   		   (> (-> state :planets planet :ships) 0)
   		   (= (-> state :planets planet :ship-colour) (:colour (empire state)))
   		   (> (:resources (empire state)) 2))
+
   	  (-> state
   	  	  (update-planet-value planet :ships dec)
   	  	  (set-planet-value planet :colour (:colour (empire state)))
@@ -47,19 +48,22 @@
            (> (- (-> state :planets planet :ships) (-> state :planets planet :moved)) 0)
   		     (or (connected? state planet (:active-planet state)) (= planet (:active-planet state)) (effect-active? state :Petiska))
            (not (and (effect-active? state :Kazo) (= planet (-> state :effect-details :Kazo)))))
+
     (-> state (assoc-in [:effects :ship-move] {:planet planet :ships 1}) ;Begins a move from planet
               (change-buttons [:done-command] [:cancel-move]))
     state))
 
 (defn safe-move
-	[state to-planet from-planet ship-num distance]
-  (do-effects state e/effects
-              [[:add-resources (:active state) (- (move-cost state distance))]
-               [:planet-add from-planet {:ships (- ship-num)}]
-               [:planet-add to-planet {:ships ship-num :moved ship-num}]
-               [:planet-set to-planet {:ship-colour (-> state :planets from-planet :ship-colour)}]
-               [:done-move]
-               [:change-buttons [:cancel-move] [:done-command]]]))
+  [state to-planet from-planet ship-num distance]
+  (-> state
+    (update-empire-value (:active state) :resources #(- % (move-cost state distance)))
+    (update-planet-value from-planet :ships #(- % ship-num))
+    (update-planet-value to-planet :ships #(+ % ship-num))
+    (update-planet-value to-planet :moved #(+ % ship-num))
+    (set-planet-value to-planet :ship-colour (-> state :planets from-planet :ship-colour))
+    (assoc-in [:effects :ship-move] false)
+    (change-buttons [:cancel-move] [:done-command])))
+
 (defn conquer
   [state planet colour surviving]
   (-> state
@@ -81,13 +85,14 @@
                 (update-planet-value to-planet :ships surviving)
                 (update-planet-value to-planet :ship-colour (:colour from-info))
                 (update-planet-value to-planet :moved surviving))
-          :else (set-planet-value state to-planet :ships (max 0 (- (inc surviving))))))
+          :else (set-planet-value state to-planet :ships (max 0 (- surviving)))))
 
 (defn attack-move
   [state to-planet from-planet ship-num from-info to-info distance]
   (let [surviving (if (= (:colour to-info) "Black")
               (- ship-num (:ships to-info)) ; attacking uncontrolled planet
               (- ship-num (inc (planet-defense state to-planet))))] ;attacking enemy planet, +1 defense
+
   (-> state
     (resolve-attack to-planet to-info from-info surviving)
     (add-points (:active state) (:ships from-info) (= (:major (empire state)) "Warlords"))
@@ -104,15 +109,21 @@
         to-info (-> state :planets to-planet)
         from-info (-> state :planets from-planet)
         distance (get-distance (:x from-info)	(:y from-info) (:x to-info) (:y to-info))]
+
   (if (= to-planet from-planet)
+
     (if (> (- (:ships to-info) (:moved to-info)) ship-num) ; Prevents moving more ships than exist
       (update-in state [:effects :ship-move :ships] inc) ; Increases number of ships moving
       state)
+
     (if (and (connected? state to-planet from-planet) (>= (:resources (empire state)) (move-cost state distance)))
+
       (if (> (:ships to-info) 0)
+
       		(if (= (:ship-colour to-info) (:ship-colour from-info))
       				(safe-move state to-planet from-planet ship-num distance)
       				(attack-move state to-planet from-planet ship-num from-info to-info distance))
+
       		(if (or (= (:colour to-info) "Black") (= (:colour to-info) (:ship-colour from-info)))
       			(safe-move state to-planet from-planet ship-num distance)
       			(attack-move state to-planet from-planet ship-num from-info to-info distance)))

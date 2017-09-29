@@ -11,14 +11,15 @@
 
 (def ability-map
   {:Petiska
-   ; Move an unconnected fleet ***MIGHT NOT WORK***
+   ; Move an unconnected fleet
   	{:effect #(-> % (assoc-in [:active-planet] :Petiska)
   							(add-effect :Petiska :phase-end))
   			 :reqs []
-  			 :target-effect #(-> %1 (begin-move %2)
+  			 :target-effect #(-> %1 (set-planet-value %2 :moved 0)
+  			 						(begin-move %2)
   			 						(assoc-in [:active-planet] false)
   			 						(change-buttons [:end-phase] []))
-  			 :target-reqs [#(planet-owned? %1 %2 (:active %1)) ; ONLY WORKS ON CONTROLLED PLANETS -- FIXME	
+  			 :target-reqs [#(= (get-planet-ship-empire %1 %2) (:active %1))
   			 			   #(> (-> %1 :planets %2 :ships) 0)]}
 
    :Henz
@@ -161,6 +162,7 @@
    :Algoa
    ;Builds 3 ships
    {:effect #(-> % (update-planet-value :Algoa :ships (fn [x] (+ x 3)))
+   					(set-planet-value :Algoa :ship-colour (:colour (empire %)))
       				(update-planet-value :Algoa :moved (fn [x] (+ x 3)))
    			    	(update-empire-value (:active %) :resources (fn [x] (- x 8))))
    	:reqs [#(> (:resources (empire %)) 7)]}
@@ -233,8 +235,9 @@
    :Lisst
    ;Builds 2 ships
    	{:effect #(-> % (update-planet-value :Lisst :ships (fn [x] (+ x 2)))
-   	    			  (update-planet-value :Lisst :moved (fn [x] (+ x 2)))
-   			    	  (update-empire-value (:active %) :resources (fn [x] (- x 5))))
+   					(set-planet-value :Lisst :ship-colour (:colour (empire %)))
+   	    			(update-planet-value :Lisst :moved (fn [x] (+ x 2)))
+   			    	(update-empire-value (:active %) :resources (fn [x] (- x 5))))
    	 :reqs [#(> (:resources (empire %)) 4)]}
 
    :Nussbaum

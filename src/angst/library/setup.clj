@@ -45,18 +45,21 @@
 	"Sets up a balanced-ish map based on the number of players"
 	[state]
 	(let [setups
-		 {2 [[:Echemmon :Altu] [:VanVogt :Jaid]]
-		  3 [[:Brahms :Uchino] [:Path :Lisst] [:Bhowmik :Dengras]]
-		  4 [[:Odyssey :Uchino] [:Path :Quinz] [:Erasmus :Iago] [:Bhowmik :Walden]]
-		  5 [[:Erasmus :Froya] [:Path :Byrd] [:Chiu :Henz] [:Bhowmik :Walden] [:Valeria :Uchino]]}
-		  align-planets (fn [x y] {(first y) (merge ((first y) (:planets state)) {:colour (:colour (second x))
+			 {2 [[:Echemmon :Altu] [:VanVogt :Jaid]]
+			  3 [[:Brahms :Uchino] [:Path :Lisst] [:Bhowmik :Dengras]]
+			  4 [[:Odyssey :Uchino] [:Path :Quinz] [:Erasmus :Iago] [:Bhowmik :Walden]]
+			  5 [[:Erasmus :Froya] [:Path :Byrd] [:Chiu :Henz] [:Bhowmik :Walden] [:Valeria :Uchino]]}
+
+		  align-planets 
+		  	(fn [x y] {(first y) (merge ((first y) (:planets state)) {:colour (:colour (second x))
 		  																		 :ship-colour (:colour (second x))
 		  																		 :ships 1
 		  																		 :development 3})
-		  						   (second y) (merge ((second y) (:planets state)) {:colour (:colour (second x))
-		  																		 :ship-colour (:colour (second x))
-		  																		 :ships 1
-		  																		 :development 0})})]
+					   (second y) (merge ((second y) (:planets state)) {:colour (:colour (second x))
+																	 :ship-colour (:colour (second x))
+																	 :ships 1
+																	 :development 0})})]
+
 		(update-in state [:planets] #(reduce merge % (map align-planets (vec (:empire state)) (setups (count (:empire state))))))))
 
 (defn get-next-player-map
@@ -76,6 +79,7 @@
 	(let [planet-map (-> all-planets
 						(select-keys (keys (planet-maps (count (:empire state)))))
 						(#(reduce-kv (fn [m k v] (update-in m [k] (fn [x] (merge x (hash-map :connections v))))) % (planet-maps (count (:empire state))))))]
+	
 	(if (= (count (:empire state)) 5)
 		(assoc-in state [:planets] all-planets)
 		(assoc-in state [:planets] planet-map))))

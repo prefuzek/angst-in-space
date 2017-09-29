@@ -23,10 +23,16 @@
 (defn get-mouse-planet
   "Consumes (:planets state) seq and produces planet info-map if one is moused over and false if not, or if the game is in setup phase"
   [vec-seq state]
-  (cond (= (:phase state) "setup") false
-  		(empty? vec-seq) false
+  (cond 
+        (= (:phase state) "setup")
+          false
+
+  		  (empty? vec-seq)
+          false
+
         (over-planet? (-> vec-seq first second :x) (-> vec-seq first second :y))
-        (first (first vec-seq))
+          (first (first vec-seq))
+
         :else (get-mouse-planet (rest vec-seq) state)))
 
 (defn get-mouse-button 
@@ -41,7 +47,7 @@
   "Performs a basic action on a planet based on the current phase"
   [state planet]
   (if (-> state :planets planet :used)
-      state
+        state
       (cond
       	(= (:phase state) 0)
       	  (use-ability state planet ability-map)
@@ -58,33 +64,40 @@
 (defn mouse-pressed [state event]
    (let [planet (get-mouse-planet (seq (:planets state)) state)
         button (get-mouse-button (:buttons state))] ;button is [:button {button-info}] or false
-    (cond planet
-            (cond
-              (= (:phase state) 4)
-                (colonize state planet)
-              (:ship-move (:effects state))
-                (continue-move state planet)
-              (:active-planet state)
-                (cond (= (:phase state) 0)
-                		(target-effect state planet)
-                	  (= (:phase state) 2)
-                	  	(begin-move state planet))
-              (and (= (:phase state) 0)
-              	   (member? planet (-> state :constant-effects :projects))
-              	   (planet-active? state planet))
-              	(if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
-              		(end-project state planet)
-              		(check-altu (use-ability state planet project-effects)))
-              (and (= (:active state) (get-planet-empire state planet))
-              	(not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
-              	(let [newstate (planet-action state planet)]
-              		(if (not= state newstate)
-                    	  (set-planet-value newstate planet :used true)
-                    	  state))
-              :else state)
-          button
-          	(do-effects state effects (:effect (second button)))
-          :else state)))
+    (cond 
+      planet
+        (cond
+          (= (:phase state) 4)
+            (colonize state planet)
+
+          (:ship-move (:effects state))
+            (continue-move state planet)
+
+          (:active-planet state)
+            (cond (= (:phase state) 0)
+            		(target-effect state planet)
+            	  (= (:phase state) 2)
+            	  	(begin-move state planet))
+
+          (and (= (:phase state) 0)
+          	   (member? planet (-> state :constant-effects :projects))
+          	   (planet-active? state planet))
+          	(if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
+          		(end-project state planet)
+          		(check-altu (use-ability state planet project-effects)))
+            
+          (and (= (:active state) (get-planet-empire state planet))
+          	(not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
+          	(let [newstate (planet-action state planet)]
+          		(if (not= state newstate)
+                	  (set-planet-value newstate planet :used true)
+                	  state))
+          :else state)
+
+      button
+        (do-effects state effects (:effect (second button)))
+
+      :else state)))
 
 (defn update-state [state]
   (assoc-in state [:display :planet] (get-mouse-planet (seq (:planets state)) state)))
