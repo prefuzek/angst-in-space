@@ -1,7 +1,8 @@
 (ns angst.library.graphics
   (:require [quil.core :as q]
             [quil.middleware :as m]
-            [angst.library.utils :refer :all]))
+            [angst.library.utils :refer :all]
+            [angst.library.data :refer :all]))
 
 (def infobar-width 300)
 
@@ -54,7 +55,7 @@
       (do
       (q/stroke 0 0 255)
       (q/stroke-weight 2)))
-    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) 20 20)
+    (q/ellipse (scalex (:x (second p))) (scaley (:y (second p))) 21 21)
     (q/stroke 0 0 100)
     (q/stroke-weight 1)))
 
@@ -101,8 +102,8 @@
   (q/line (scalex 1066) (scaley 264) (q/width) (scaley 264))
   (q/line (scalex 1066) (scaley 384) (q/width) (scaley 384))
   ;planet info
-  (if (:planet (:display state))
-    (let [planet ((:planet (:display state)) (:planets state))]
+  (if @planet-info-display
+    (let [planet (@planet-info-display (:planets state))]
       (if (>= (:development planet) 0)
         (do
           (set-fill "Black")

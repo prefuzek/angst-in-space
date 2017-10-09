@@ -1,5 +1,11 @@
 (ns angst.library.data)
 
+(def online-state (atom nil))
+(def serverdata (atom nil))
+(def host-update-required (atom false))
+(def planet-info-display (atom false))
+(def client-update-required (atom true))
+
 (def all-empires
   {:Sheep {:name "Sheep" :colour "Blue" :resources 8 :vp 0 :major ""}
      :Gopher {:name "Gopher" :colour "Green" :resources 8 :vp 0 :major ""}
@@ -8,8 +14,8 @@
      :Flamingo {:name "Flamingo" :colour "Pink" :resources 8 :vp 0 :major ""}})
 
 (def button-map
-  {:setup-new-game {:label "Start new game!" :x 683 :y 650 :width 300 :height 50 :effect [[:new-game]]}
-  :setup-load {:label "Load from save" :x 683 :y 580 :width 300 :height 50 :effect [[:load]]}
+  {:setup-new-game {:label "Start new game!" :x 683 :y 600 :width 300 :height 50 :effect [[:new-game]]}
+  :setup-load {:label "Load from save" :x 683 :y 550 :width 300 :height 50 :effect [[:load]]}
   :choose-sheep {:label "Sheep Empire: No" :x 483 :y 250 :width 150 :height 40 :effect [[:toggle-empire :choose-sheep :Sheep]]}
   :choose-gopher {:label "Gopher Empire: No" :x 483 :y 300 :width 150 :height 40 :effect [[:toggle-empire :choose-gopher :Gopher]]}
   :choose-muskox {:label "Muskox Empire: No" :x 483 :y 350 :width 150 :height 40 :effect [[:toggle-empire :choose-muskox :Muskox]]}
@@ -19,11 +25,14 @@
   :opt-objectives {:label "Objectives: Off" :x 883 :y 300 :width 150 :height 40 :effect [[:toggle-option :opt-objectives "goals"]]}
   :game-save {:label "Save" :x 900 :y 40 :width 80 :height 40 :effect [[:save]]}
   :game-load {:label "Load" :x 800 :y 40 :width 80 :height 40 :effect [[:load]]}
-  :game-quit {:label "Quit" :x 1000 :y 40 :width 80 :height 40 :effect [[:menu]]}
+  :game-quit {:label "Quit" :x 1000 :y 40 :width 80 :height 40 :effect [[:stop-online][:menu]]}
   :end-phase {:label "End Specialization Phase" :x 1216 :y 344 :width 200 :height 50 :effect [[:end-phase]]}
   :cancel-move {:label "Cancel" :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-move]]}
   :done-command {:label "Done Command" :x 1216 :y 344 :width 200 :height 50 :effect [[:done-command]]}
-  :cancel-ability {:label "Done"  :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-ability]]}})
+  :cancel-ability {:label "Done"  :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-ability]]}
+  :start-server {:label "Host a server" :x 683 :y 650 :width 300 :height 50 :effect [[:start-server] [:change-buttons [:start-server] [:end-server]]]}
+  :end-server {:label "Shut down the server" :x 683 :y 650 :width 300 :height 50 :effect [[:stop-online] [:change-buttons [:end-server] [:start-server]]]}
+  :join-server {:label "Join a server" :x 683 :y 700 :width 300 :height 50 :effect [[:join-server]]}})
 
 (def phase-labels
   ["End Specialization Phase" "End Production Phase" "End Command Phase" "End Construction Phase" "Done Colonizing"])
@@ -32,8 +41,8 @@
   {:phase "setup"
    :options #{}
    :empires #{}
-   :buttons (select-keys button-map [:setup-new-game :setup-load :choose-sheep :choose-flamingo :choose-llama
-                                     :choose-muskox :choose-gopher :opt-objectives :opt-rand-start])})
+   :buttons (select-keys button-map [:setup-new-game :setup-load :choose-sheep :choose-flamingo :choose-llama :choose-muskox :choose-gopher
+                                     :opt-objectives :opt-rand-start :start-server :join-server])})
 
 (def init-state
   {:planets {}

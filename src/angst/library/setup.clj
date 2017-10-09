@@ -1,7 +1,8 @@
 (ns angst.library.setup
 	(:require [quil.core :as q]
 			  [angst.library.utils :refer :all]
-			  [angst.library.data :refer :all]))
+			  [angst.library.data :refer :all]
+			  [angst.library.network :refer :all]))
 
 (defn set-goals
 	"Assigns each empire a unique goal"
@@ -79,7 +80,7 @@
 	(let [planet-map (-> all-planets
 						(select-keys (keys (planet-maps (count (:empire state)))))
 						(#(reduce-kv (fn [m k v] (update-in m [k] (fn [x] (merge x (hash-map :connections v))))) % (planet-maps (count (:empire state))))))]
-	
+
 	(if (= (count (:empire state)) 5)
 		(assoc-in state [:planets] all-planets)
 		(assoc-in state [:planets] planet-map))))
@@ -98,8 +99,8 @@
 			(fixed-start-planets add-planets)))))
 
 (defn setup []
-  ; Set frame rate to 20 frames per second.
-  (q/frame-rate 20)
+  ; Set frame rate to 10 frames per second.
+  (q/frame-rate 10)
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb)
   ; Set line color to grey
@@ -107,5 +108,7 @@
   ;Set text preferences
   (q/text-align :center)
   (q/text-size 12)
+  ; Turn off server
+  (.stop host-server)
   ; Initialize state
   setup-state)

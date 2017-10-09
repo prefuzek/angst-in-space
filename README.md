@@ -16,7 +16,10 @@ REPL - run `(require 'angst.core)`.
 
 ## Gameplay
 
-You can either play locally, taking turns at the computer, or you can play by email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
+There are three ways to play:
+- Locally, taking turns at the computer
+- By email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
+- NEW AND EXPERIMENTAL: Online - see Section 6: Online Play
 
 ### 1. Setup:
 
@@ -94,7 +97,7 @@ The construction phase is where you get to build your impressive armada. Click o
 
 #### 3.5. Colonization:
 
-If you have ships on uncolonized planets at the end of the turn, you get a bonus phase! Colonizing a planet it as easy as clicking on it, but it costs three resources, and one of your ships there will disappear (they retire from the Space Navy and settle down to tame the wilderness). On your next turn, it'll be ready to do whatever you want it to do.
+At the end of your turn, you can colonize any uncolonized planet you have a ship on. Colonizing a planet it as easy as clicking on it, but it costs three resources, and one of your ships there will disappear (they retire from the Space Navy and settle down to tame the wilderness). On your next turn, it'll be ready to do whatever you want it to do.
 
 #### 3.6. Upkeep:
 
@@ -103,6 +106,18 @@ Managing a large empire is hard and expensive work. At the end of your turn you 
 ### 4. Ending the game:
 
 That's all the rules! Eventually there will be more, as more features are implemented, but for now you can go out and build angsty empires to your heart's content. The game won't force an end on you - isn't that nice?
+
+### 5. Online Play:
+
+As of version 0.6.0, you can now play online in real time! This feature is still very much in development and is therefore not very streamlined or stable yet, but it's completely functional.
+
+From the menu, you can start a server on your local network. If you want to play remotely, you'll need a tool like Hamachi to simulate a local network.
+
+To connect to a server, you'll need to create a `hostaddress.txt` file in the directory with the .jar file. Put the IP address of the host in this file. Then, when you run the game, clicking the 'Join a server' button will connect you to the online game.
+
+All players in a server are essentially sharing a common gamestate, and each one has full control. It's recommended to have another communication channel; otherwise your play experience will be confused and rather soulless.
+
+Known issue: clients should not use the in-game 'Quit' button, since this causes the game to crash. Instead use the escape key.
 
 ## License
 

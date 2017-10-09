@@ -8,7 +8,8 @@
             [angst.library.setup :refer :all]
             [angst.library.abilities :refer :all]
             [angst.library.effects :refer :all]
-            [angst.library.projects :refer :all])
+            [angst.library.projects :refer :all]
+            [angst.library.network :refer :all])
   (:gen-class))
 
 (defn over-planet? [x y]
@@ -85,7 +86,7 @@
           	(if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
           		(end-project state planet)
           		(check-altu (use-ability state planet project-effects)))
-            
+
           (and (= (:active state) (get-planet-empire state planet))
           	(not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
           	(let [newstate (planet-action state planet)]
@@ -99,8 +100,28 @@
 
       :else state)))
 
+(defn mouse-pressed-wrap [state event]
+  (cond (= @online-state "host")
+            (do-effects (mouse-pressed state event) effects [[:write-server-data]])
+        (= @online-state "client")
+            (or (send-new-state (mouse-pressed state event) (get-address)) state)
+        :else
+          (mouse-pressed state event)))
+
 (defn update-state [state]
-  (assoc-in state [:display :planet] (get-mouse-planet (seq (:planets state)) state)))
+  (do (reset! planet-info-display (get-mouse-planet (seq (:planets state)) state))
+      (cond (= @online-state "client")
+              (get-host-state state (get-address))
+            (= @online-state "host")
+              (if @host-update-required
+                    (let [newstate @host-update-required]
+                      (do (reset! host-update-required false)
+                          newstate))
+                    state)
+            :else state)))
+
+(defn shutdown [state]
+  (do-effects state effects [[:stop-online]]))
 
 (q/defsketch angst
   :title "Angst in Space"
@@ -111,7 +132,8 @@
   :update update-state
   :draw draw-state
   :features [:resizable]
-  :mouse-pressed mouse-pressed
+  :mouse-pressed mouse-pressed-wrap
+  :on-close shutdown
   ; This sketch uses functional-mode middleware.
   ; Check quil wiki for more info about middlewares and particularly
   ; fun-mode.

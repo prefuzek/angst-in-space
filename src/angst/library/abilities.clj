@@ -257,7 +257,7 @@
 
    :Quinz
    ; 4 resources -> choose a planet. That planet has -1 defense this turn.
-   {:effect #(assoc-in [:active-planet] :Quinz)
+   {:effect #(assoc-in % [:active-planet] :Quinz)
    	:reqs [#(> (:resources (empire %)) 3)]
     :target-effect #(-> %1 (add-effect :Quinz (:active %1))
    	  					     (update-in [:effect-details] (fn [x] (merge x {:Quinz %2})))

@@ -1,7 +1,11 @@
 (ns angst.library.effects
 	(:require [angst.library.utils :refer :all]
 			  [angst.library.data :refer :all]
-			  [angst.library.setup :refer :all]))
+			  [angst.library.setup :refer :all]
+			  [angst.library.network :refer :all]))
+
+; idea: add a permissions parameter to each effect, governing whether host/client can use the effect
+; alternatively, add a tag to the buttons?
 
 (def effects
 	;each effect takes one argument, state, and possibly others (documented under args)
@@ -9,13 +13,15 @@
   	;starts a new game
   	#(if (>= (count (:empires %)) 2) (new-game %) %)
   :save
-  	;saves the gamestate to save.txt, returns state unchanged
-  	#(do (spit "save.txt" %) %)
+  	;saves the gamestate to save.tstatet, returns state unchanged
+  	#(do (spit "save.tstatet" %) %)
+  :write-server-data
+  	;updates serverdata to new state and signals that clients need to update
+  	#(do (reset! serverdata %) (reset! client-update-required true) %)
   :load
-  	;loads gamestate from save.txt
+  	;loads gamestate from save.tstatet
   	;notes: ignores state
-  	(fn [state] (load-file "save.txt"))
-  	;#(do % (load-file "save.txt")) ; kludgy but works
+  	(fn [x] (load-file "save.txt"))
   :menu
   	;sets gamestate to menu
   	;notes: ignores state
@@ -54,4 +60,21 @@
   	;wrapper for change-buttons fn
   	;args removed added
   	change-buttons
+  :start-server
+  	(fn [state] (do (.start host-server)
+  				(reset! online-state "host")
+  				(reset! serverdata state)
+  				state))
+  :stop-online
+  	(fn [state] (do (if (= @online-state "host")
+  					(.stop host-server)
+  					(reset! serverdata nil))
+  	 			(reset! online-state nil)
+  	 			state))
+  :join-server
+  	(fn [state] (do (if (get-host-state state (get-address)) 
+  						(reset! online-state "client")	)
+  				state))
+  :leave-server
+  	(fn [state] (do (reset! online-state nil)))
   	})
