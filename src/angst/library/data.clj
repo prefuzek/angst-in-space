@@ -16,23 +16,23 @@
 (def button-map
   {:setup-new-game {:label "Start new game!" :x 683 :y 600 :width 300 :height 50 :effect [[:new-game]]}
   :setup-load {:label "Load from save" :x 683 :y 550 :width 300 :height 50 :effect [[:load]]}
-  :choose-sheep {:label "Sheep Empire: No" :x 483 :y 250 :width 150 :height 40 :effect [[:toggle-empire :choose-sheep :Sheep]]}
-  :choose-gopher {:label "Gopher Empire: No" :x 483 :y 300 :width 150 :height 40 :effect [[:toggle-empire :choose-gopher :Gopher]]}
-  :choose-muskox {:label "Muskox Empire: No" :x 483 :y 350 :width 150 :height 40 :effect [[:toggle-empire :choose-muskox :Muskox]]}
-  :choose-llama {:label "Llama Empire: No" :x 483 :y 400 :width 150 :height 40 :effect [[:toggle-empire :choose-llama :Llama]]}
-  :choose-flamingo {:label "Flamingo Empire: No" :x 483 :y 450 :width 150 :height 40 :effect [[:toggle-empire :choose-flamingo :Flamingo]]}
-  :opt-rand-start {:label "Random Start: Off" :x 883 :y 250 :width 150 :height 40 :effect [[:toggle-option :opt-rand-start "rand-start"]]}
-  :opt-objectives {:label "Objectives: Off" :x 883 :y 300 :width 150 :height 40 :effect [[:toggle-option :opt-objectives "goals"]]}
+  :start-server {:label "Host a server" :x 683 :y 650 :width 300 :height 50 :effect [[:start-server] [:change-buttons [:start-server] [:end-server]]]}
+  :end-server {:label "Shut down the server" :x 683 :y 650 :width 300 :height 50 :effect [[:stop-online] [:change-buttons [:end-server] [:start-server]]]}
+  :join-server {:label "Join a server" :x 683 :y 700 :width 300 :height 50 :effect [[:join-server]]}
+  :choose-sheep {:label "Sheep Empire: No" :x 483 :y 220 :width 150 :height 40 :effect [[:toggle-empire :choose-sheep :Sheep]]}
+  :choose-gopher {:label "Gopher Empire: No" :x 483 :y 260 :width 150 :height 40 :effect [[:toggle-empire :choose-gopher :Gopher]]}
+  :choose-muskox {:label "Muskox Empire: No" :x 483 :y 300 :width 150 :height 40 :effect [[:toggle-empire :choose-muskox :Muskox]]}
+  :choose-llama {:label "Llama Empire: No" :x 483 :y 340 :width 150 :height 40 :effect [[:toggle-empire :choose-llama :Llama]]}
+  :choose-flamingo {:label "Flamingo Empire: No" :x 483 :y 380 :width 150 :height 40 :effect [[:toggle-empire :choose-flamingo :Flamingo]]}
+  :opt-rand-start {:label "Random Start: Off" :x 883 :y 220 :width 150 :height 40 :effect [[:toggle-option :opt-rand-start "rand-start"]]}
+  :opt-objectives {:label "Objectives: Off" :x 883 :y 260 :width 150 :height 40 :effect [[:toggle-option :opt-objectives "goals"]]}
   :game-save {:label "Save" :x 900 :y 40 :width 80 :height 40 :effect [[:save]]}
   :game-load {:label "Load" :x 800 :y 40 :width 80 :height 40 :effect [[:load]]}
   :game-quit {:label "Quit" :x 1000 :y 40 :width 80 :height 40 :effect [[:stop-online][:menu]]}
   :end-phase {:label "End Specialization Phase" :x 1216 :y 344 :width 200 :height 50 :effect [[:end-phase]]}
   :cancel-move {:label "Cancel" :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-move]]}
   :done-command {:label "Done Command" :x 1216 :y 344 :width 200 :height 50 :effect [[:done-command]]}
-  :cancel-ability {:label "Done"  :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-ability]]}
-  :start-server {:label "Host a server" :x 683 :y 650 :width 300 :height 50 :effect [[:start-server] [:change-buttons [:start-server] [:end-server]]]}
-  :end-server {:label "Shut down the server" :x 683 :y 650 :width 300 :height 50 :effect [[:stop-online] [:change-buttons [:end-server] [:start-server]]]}
-  :join-server {:label "Join a server" :x 683 :y 700 :width 300 :height 50 :effect [[:join-server]]}})
+  :cancel-ability {:label "Done"  :x 1216 :y 344 :width 200 :height 50 :effect [[:cancel-ability]]}})
 
 (def phase-labels
   ["End Specialization Phase" "End Production Phase" "End Command Phase" "End Construction Phase" "Done Colonizing"])
@@ -225,7 +225,7 @@
    :Erasmus {:name "Erasmus" :colour "Black" :x 985 :y 380
          :connections [:Froya :VanVogt :Iago :Nussbaum] :ships 0 :moved 0 :ship-colour "Black"
              :production [1 3 2 4 3 5 4 2] :development -1 :used false :project "inactive" :progress 0
-        :ability "Project: Remove X\u00A7 to place X-1  on Erasmus."}
+        :ability "Project: Remove X\u00A7 to place X-1 Ships on Erasmus."}
 
    :Iago {:name "Iago" :colour "Black" :x 850 :y 340
         :connections [:Erasmus :VanVogt :Jaid :Lisst :Nussbaum] :ships 0 :moved 0 :ship-colour "Black"

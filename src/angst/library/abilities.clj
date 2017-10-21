@@ -176,7 +176,9 @@
 			#(> (:ships (:VanVogt (:planets %))))]
 	:target-effect #(-> %1 (update-planet-value :VanVogt :ships dec)
    							(set-planet-value %2 :colour (:colour (empire %1)))
-  	  						(assoc-in [:active-planet] false))
+                (set-planet-value %2 :ship-colour (:colour (empire %1)))
+                (set-planet-value %2 :used true)
+  	  					(assoc-in [:active-planet] false))
 	:target-reqs [#(= (:colour (%2 (:planets %1))) "Black")]}
 
    :Jaid
@@ -243,7 +245,7 @@
    :Nussbaum
    ;Add 1 progress to a planet
    {:effect #(assoc-in % [:active-planet] :Nussbaum)
-    :target-effect #(-> %1 (add-progress %2)
+    :target-effect #(-> %1 (add-progress %2 1)
    							 (assoc-in [:active-planet] false))
    	:target-reqs [#(= (:colour (%2 (:planets %1))) (:colour (empire %1)))
    					#(-> %1 :planets %2 :project)]}

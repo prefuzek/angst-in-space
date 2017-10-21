@@ -1,4 +1,4 @@
-(defproject angst "0.6.0-SNAPSHOT"
+(defproject angst "0.6.1-SNAPSHOT"
   :description "A space strategy board game for 2-5 players"
   :url "https://github.com/prefuzek/angst-in-space"
   :license {:name "Eclipse Public License"

@@ -2,7 +2,8 @@
   (:require [quil.core :as q]
             [quil.middleware :as m]
             [angst.library.utils :refer :all]
-            [angst.library.data :refer :all]))
+            [angst.library.data :refer :all]
+            [angst.library.modal :refer :all]))
 
 (def infobar-width 300)
 
@@ -95,6 +96,13 @@
        "Choose planets to colonize"
     :else "Something's wrong..."))
 
+(defn get-ip-message []
+  (try (let [host-ip (slurp "hostaddress.txt")]
+          (if (empty? host-ip)
+            "Put host's IP address in hostaddress.txt to connect to a server"
+            (str "Target host IP address: " host-ip " (edit hostaddress.txt to change)")))
+    (catch Exception e "Create hostaddress.txt with host's IP address to connect to a server")))
+
 (defn draw-infobar [state]
   ;vertical line
   (q/line (scalex 1066) 0 (scalex 1066) (q/height))
@@ -117,6 +125,7 @@
                  (if (:project planet) {:align :left :x 20 :y 100 :size 12})}
                 (scalex 1066)
                 0)))
+
   (text-display {(str (:name (empire state)) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
                  (:major (empire state)) {:align :center :x (scalex 150) :y 42 :size 12}
                  (str "Resources: " (:resources (empire state))) {:align :left :x 20 :y 60 :size 12}
@@ -126,6 +135,7 @@
                     {:align :left :x 20 :y 120 :size 12}}
                  (scalex 1066)
                  (scaley 384))
+
   (let [message (get-message state)]
   	(text-display {message {:align :center :x 0 :y 0 :size 12}}
   				  (scalex 1216)
@@ -146,8 +156,9 @@
 (defn draw-setup [state]
   (q/background 0)
   (text-display {"Angst In Space" {:align :center :x (scalex 683) :y (scaley 100) :size 40}
-           "Options" {:align :center :x (scalex 883) :y (scaley 200) :size 20}
-           "Empires" {:align :center :x (scalex 483) :y (scaley 200) :size 20}} 0 0)
+           "Options" {:align :center :x (scalex 883) :y (scaley 180) :size 20}
+           "Empires" {:align :center :x (scalex 483) :y (scaley 180) :size 20}} 0 0)
+  (text-display {(get-ip-message) {:align :center :x 0 :y 0 :size 12}} (scalex 683) (scaley 750))
   (draw-buttons state)
   (set-fill "White") (text-buttons state))
  

@@ -51,7 +51,7 @@
         state
       (cond
       	(= (:phase state) 0)
-      	  (use-ability state planet ability-map)
+      	  (check-altu (use-ability state planet ability-map))
         (= (:phase state) 3)
           (if (> (:resources (empire state)) 1)
             (build-ship state planet)

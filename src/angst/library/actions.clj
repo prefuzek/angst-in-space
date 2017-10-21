@@ -82,10 +82,10 @@
               (conquer state to-planet (:colour from-info) surviving)
           (> surviving 0)
              (-> state
-                (update-planet-value to-planet :ships surviving)
-                (update-planet-value to-planet :ship-colour (:colour from-info))
-                (update-planet-value to-planet :moved surviving))
-          :else (set-planet-value state to-planet :ships (max 0 (- surviving)))))
+                (set-planet-value to-planet :ships surviving)
+                (set-planet-value to-planet :ship-colour (:colour from-info))
+                (set-planet-value to-planet :moved surviving))
+          :else (set-planet-value state to-planet :ships (max 0 (- (inc surviving))))))
 
 (defn attack-move
   [state to-planet from-planet ship-num from-info to-info distance]
