@@ -190,12 +190,24 @@
 	(set-fill "White")
 	(text-display {"Save successful!" {:align :center :x 0 :y -75 :size 18}} (/ (q/width) 2) (/ (q/height) 2)))
 
+(defn draw-could-not-connect [state]
+	(set-fill "Dark Grey")
+	(q/rect-mode :center)
+	(q/rect (/ (q/width) 2) (/ (q/height) 2) 400 200 10)
+	(q/rect-mode :corner)
+	(set-fill "White")
+	(text-display {"Could not connect." {:align :center :x 0 :y -75 :size 18}} (/ (q/width) 2) (/ (q/height) 2)))
+
 (def components
 	{:main-menu {:draw-fn draw-menu
 				 :active '()
 				 :buttons [:setup-new-game :setup-load :start-server :end-server :join-server :choose-sheep :choose-gopher :choose-muskox
 											  :choose-llama :choose-flamingo :opt-rand-start :opt-objectives]
 				 :text-input :ip-input}
+	 :could-not-connect-message {:draw-fn draw-could-not-connect
+	 							 :active '(:could-not-connect-message)
+	 							 :buttons [:accept-could-not-connect]
+	 							 :text-input nil}
 	 :map {:draw-fn draw-map
 	 	   :active '()
 	 	   :buttons [:game-menu]

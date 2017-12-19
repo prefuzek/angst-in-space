@@ -3,7 +3,7 @@
 			  [angst.library.utils :refer :all]
 			  [angst.library.data :refer :all]
 			  [angst.library.actions :refer :all]
-              [angst.library.turn :refer :all]))
+        [angst.library.turn :refer :all]))
 
 (defn add-effect
 	[state effect timer]

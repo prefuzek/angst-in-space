@@ -96,6 +96,11 @@
 			  (fixed-start-planets (set-goals state))
 			(fixed-start-planets state))))
 
+(defn online-setup [state]
+	(if (= (:online-state state) :host)
+		(update-in state [:extra-update-data] #(into % [:components :active-component :active-text-input :buttons]))
+		state))
+
 (defn new-game
 	"Launches a new game according to settings"
 	[state]
@@ -103,7 +108,8 @@
 		(merge init-state)
 		(set-players (:empires state))
 		(get-planets)
-		(game-settings)))
+		(game-settings)
+		(online-setup)))
 
 (defn setup []
   ; Set frame rate to 20 frames per second.

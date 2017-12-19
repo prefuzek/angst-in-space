@@ -62,8 +62,8 @@
   (if (-> state :planets planet :used)
         state
       (cond
-      	(= (:phase state) 0)
-      	  (check-altu (use-ability state planet ability-map))
+        (= (:phase state) 0)
+          (check-altu (use-ability state planet ability-map))
         (= (:phase state) 3)
           (if (> (:resources (empire state)) 1)
             (build-ship state planet)
@@ -74,15 +74,8 @@
           (get-resources state planet)
         :else state)))
 
-(defn mouse-pressed [state event]
-   (let [planet (get-mouse-planet (seq (:planets state)) state)
-   		active-buttons (if (not-empty (:active-component state))
-   							 (select-keys button-map (:buttons ((peek (:active-component state)) components)))
-   							 (:buttons state))
-        button (get-mouse-button active-buttons)] ;button is [:button {button-info}] or false
-    (cond 
-      planet
-        (cond
+(defn planet-clicked [state planet]
+    (cond
           (= (:phase state) 4)
             (colonize state planet)
 
@@ -91,51 +84,62 @@
 
           (:active-planet state)
             (cond (= (:phase state) 0)
-            		(target-effect state planet)
-            	  (= (:phase state) 2)
-            	  	(begin-move state planet))
+                    (target-effect state planet)
+                  (= (:phase state) 2)
+                    (begin-move state planet))
 
           (and (= (:phase state) 0)
-          	   (member? planet (-> state :constant-effects :projects))
-          	   (planet-active? state planet))
-          	(if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
-          		(-> state (end-project planet)
-          				  (log/add-log-entry :end-project (:active state) planet))
-          		(check-altu (use-ability state planet project-effects)))
+               (member? planet (-> state :constant-effects :projects))
+               (planet-active? state planet))
+            (if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
+                (-> state (end-project planet)
+                          (log/add-log-entry :end-project (:active state) planet))
+                (check-altu (use-ability state planet project-effects)))
 
           (and (= (:active state) (get-planet-empire state planet))
-          	(not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
-          	(let [newstate (planet-action state planet)]
-          		(if (not= state newstate)
-                	  (set-planet-value newstate planet :used true)
-                	  state))
-          :else state)
+            (not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
+            (let [newstate (planet-action state planet)]
+                (if (not= state newstate)
+                      (set-planet-value newstate planet :used true)
+                      state))
+          :else state))
 
-      button
-        (do-effects state effects (:effect (second button)))
 
-      :else state)))
+(defn mouse-pressed [state event]
+	(let [planet (get-mouse-planet (seq (:planets state)) state)
+   		active-buttons (if (not-empty (:active-component state))
+   							 (select-keys button-map (:buttons ((peek (:active-component state)) components)))
+   							 (:buttons state))
+        button (get-mouse-button active-buttons)]
 
-(defn mouse-pressed-wrap [state event]
-  (cond (= @online-state "host")
-            (do-effects (mouse-pressed state event) effects [[:write-server-data]])
-        (= @online-state "client")
-            (or (send-new-state (mouse-pressed state event) (get-address state)) state)
-        :else
-          (mouse-pressed state event)))
+	(letfn [(online-wrapper [state]
+				(cond (= (:online-state state) :host)
+            			(do-effects state effects [[:write-server-data]])
+	        		(= (:online-state state) :client)
+	            		(do (send-new-state state (get-address state)) state)
+	        		:else state))
+
+			(object-type-wrapper [state]
+				(cond 
+			      planet (planet-clicked state planet)
+			      button (do-effects state effects (:effect (second button)))
+			      :else state))]
+
+			(-> state
+				(object-type-wrapper)
+				(online-wrapper)))))
 
 (defn keypressed [state other]
 	(update-text-input state))
 
 (defn update-state [state]
   (do (reset! planet-info-display (get-mouse-planet (seq (:planets state)) state))
-      (cond (= @online-state "client")
+      (cond (= (:online-state state) :client)
               (get-host-state state (get-address state))
-            (= @online-state "host")
-              (if @host-update-required
-                    (let [newstate @host-update-required]
+            (= (:online-state state) :host)
+              (if-let [newstate @host-update-required]
                       (do (reset! host-update-required false)
-                          newstate))
+                          (merge state newstate))
                     state)
             :else state)))
 
@@ -151,7 +155,7 @@
   :update update-state
   :draw draw
   :features [:resizable]
-  :mouse-pressed mouse-pressed-wrap
+  :mouse-pressed mouse-pressed
   :key-pressed keypressed
   :on-close shutdown
   ; This sketch uses functional-mode middleware.

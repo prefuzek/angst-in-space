@@ -35,7 +35,8 @@
   :end-phase {:label "End Specialization Phase" :x 1216 :y 305 :width 200 :height 50 :effect [[:end-phase]]}
   :cancel-move {:label "Cancel" :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-move]]}
   :done-command {:label "Done Command" :x 1216 :y 305 :width 200 :height 50 :effect [[:done-command]]}
-  :cancel-ability {:label "Done"  :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-ability]]}})
+  :cancel-ability {:label "Done"  :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-ability]]}
+  :accept-could-not-connect {:label "OK" :x 683 :y 410 :width 80 :height 40 :effect [[:remove-gcomponent :could-not-connect-message]]}})
 
 (def text-inputs
   {:ip-input {:x 683 :y 730 :width 150 :height 20 :value "" :max-length 20 :rect-mode :center :text-align :center :text-offset-x 0 :text-offset-y 5}
