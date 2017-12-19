@@ -2,7 +2,9 @@
   (:require [quil.core :as q]
             [quil.middleware :as m]
             [angst.library.utils :refer :all]
-            [angst.library.effects :as e]))
+            [angst.library.effects :as e]
+            [angst.library.actionlog :as log]
+            [angst.library.turn :refer :all]))
 
 (defn connected?
   "Checks if two planets are connected"
@@ -19,14 +21,17 @@
   	  	  (update-planet-value planet :ships dec)
   	  	  (set-planet-value planet :colour (:colour (empire state)))
           (set-planet-value planet :used true)
+          (log/add-log-entry :colonize (:active state) planet)
   	  	  (update-in [:empire (:active state) :resources] #(- % (col-cost state planet))))
   	  state))
 
 (defn get-resources [state planet]
-  (-> state
-    (update-empire-value (:active state) :resources #(+ % (get (-> state :planets planet :production)
-  																                             (-> state :planets planet :development))))
-   (end-project planet)))
+    (let [planet-info (-> state :planets planet)
+          resources (get (:production planet-info) (:development planet-info))]
+      (-> state
+        (update-empire-value (:active state) :resources #(+ % resources))
+        (log/add-log-entry :produce-resources (:active state) planet resources)
+        (end-project planet))))
 
 (defn reset-moved [state]
   "Sets all ships to unmoved"
@@ -39,6 +44,7 @@
   		(assoc-in [:active-planet] planet)
   		(change-buttons [:end-phase] [:done-command])
   		(reset-moved)
+        (log/add-log-entry :begin-command (:active state) planet)
       (end-project planet)))
 
 (defn begin-move
@@ -61,12 +67,14 @@
     (update-planet-value to-planet :ships #(+ % ship-num))
     (update-planet-value to-planet :moved #(+ % ship-num))
     (set-planet-value to-planet :ship-colour (-> state :planets from-planet :ship-colour))
+    (log/add-log-entry :safe-move (:active state) ship-num from-planet to-planet)
     (assoc-in [:effects :ship-move] false)
     (change-buttons [:cancel-move] [:done-command])))
 
 (defn conquer
   [state planet colour surviving]
   (-> state
+    (log/add-log-entry :conquer (:active state) planet)
     (add-points (:active state) 1 (= (:major (empire state)) "Warlords"))
     (add-points (:active state) 3 (= (:major (empire state)) "Conquistadores"))
     (add-points (:active state) 2 (= (:major (empire state)) "Slavers"))
@@ -79,12 +87,13 @@
 (defn resolve-attack
   [state to-planet to-info from-info surviving]
     (cond (and (not= (:colour to-info) "Black") (> surviving 0))
-              (conquer state to-planet (:colour from-info) surviving)
+              (conquer state to-planet (:ship-colour from-info) surviving)
           (> surviving 0)
              (-> state
                 (set-planet-value to-planet :ships surviving)
                 (set-planet-value to-planet :ship-colour (:colour from-info))
-                (set-planet-value to-planet :moved surviving))
+                (set-planet-value to-planet :moved surviving)
+                (log/add-log-entry :unsuccessful-attack (:active state) to-planet))
           :else (set-planet-value state to-planet :ships (max 0 (- (inc surviving))))))
 
 (defn attack-move
@@ -94,6 +103,7 @@
               (- ship-num (inc (planet-defense state to-planet))))] ;attacking enemy planet, +1 defense
 
   (-> state
+    (log/add-log-entry :attack-move (:active state) ship-num from-planet to-planet (:ships to-info))
     (resolve-attack to-planet to-info from-info surviving)
     (add-points (:active state) (:ships from-info) (= (:major (empire state)) "Warlords"))
     (update-planet-value from-planet :ships #(- % ship-num))
@@ -132,4 +142,21 @@
 (defn build-ship [state planet]
   (-> state (update-in [:empire (:active state) :resources] #(- % 2))
             (update-in [:planets planet :ships] inc)
+            (log/add-log-entry :build-ship (:active state) planet)
             (end-project planet)))
+
+(defn start-progress
+    "Adds proper amount of progress when a project starts"
+    [state planet]
+    (if (not (effect-active? state :Chiu))
+        (add-progress state planet 1)
+        (add-progress state planet (inc (quot (-> state :planets :Chiu :progress) 2)))))
+
+(defn start-project
+    "Adds planet to project effects list, sets it to active, and adds initial progress"
+    [state planet]
+    (-> state
+        (update-in [:constant-effects :projects] #(vec (cons planet %)))
+        (assoc-in [:planets planet :project] "active")
+        (start-progress planet)
+        (log/add-log-entry :start-project (:active state) planet (-> state :planets planet :progress))))

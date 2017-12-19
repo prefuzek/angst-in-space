@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [quil "2.5.0"]
                  [ring "1.6.2"]
-                 [clj-http "3.7.0"]]
+                 [clj-http "3.7.0"]
+                 [criterium "0.4.4"]]
   :aot [angst.core]
   :main angst.core)

@@ -7,6 +7,8 @@
 
 (def port 3000)
 
+(def shared-state [:phase :options :empires :planets :empire :active :active-planet :next-player-map :constant-effects :effect-details :ship-move :action-log])
+
 (defn get-response [request]
 	(if @d/client-update-required
 		{:status 200
@@ -55,5 +57,5 @@
 	[state host-ip]
 	(:status (client/post host-ip (create-post state))))
 
-(defn get-address []
-	(str "http://" (slurp "hostaddress.txt") ":" port))
+(defn get-address [state]
+	(str "http://" (clojure.string/replace (-> state :text-inputs :ip-input :value) #"[^0-9.]" "") ":" port))

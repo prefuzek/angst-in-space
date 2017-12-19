@@ -2,12 +2,12 @@
 	(:require [quil.core :as q]
 			  [angst.library.utils :refer :all]
 			  [angst.library.data :refer :all]
-			  [angst.library.projects :refer :all]
-			  [angst.library.actions :refer :all]))
+			  [angst.library.actions :refer :all]
+              [angst.library.turn :refer :all]))
 
 (defn add-effect
 	[state effect timer]
-	(update-in state [:constant-effects timer] #(cons effect %)))
+	(update-in state [:constant-effects timer] #(vec (cons effect %))))
 
 (def ability-map
   {:Petiska
@@ -275,6 +275,28 @@
    ;Colonization costs 0 resources this turn
    {:effect #(update-in % [:constant-effects :turn-end] (fn [x] (cons :Yerba x)))}
    })
+
+
+(def project-effects
+    "For projects that do something when you click on them while active"
+    {:Caia {:effect (fn [state progress]
+                      (if (< progress 7)
+                        (-> state (update-empire-value (:active state) :resources #(- % progress))
+                                  (add-progress :Caia 1))
+                        (assoc-in state [:active-planet] :Caia)))
+            :reqs [(fn [state progress] (>= (:resources (empire state)) progress))]}
+    :Bhowmik {:effect (fn [state progress]
+                        (-> state (update-empire-value (:active state) :resources #(+ % progress))
+                                  (update-planet-value :Bhowmik :progress dec)))
+              :reqs [(fn [state progress] (> progress 0))]}
+    :Xosa {:effect (fn [state progress] (assoc-in state [:active-planet] :Xosa))
+           :reqs [(fn [state progress] (>= progress 3))]}
+    :Entli {:effect (fn [state progress] (assoc-in state [:active-planet] :Entli))
+            :reqs [(fn [state progress] (>= progress 5))]}
+    :Erasmus {:effect (fn [state progress]
+                        (-> state (update-planet-value :Erasmus :ships #(+ % (- progress 1)))
+                                  (set-planet-value :Erasmus :progress 0)))
+              :reqs [(fn [state progress] (>= progress 2))]}})
 
 (defn use-ability
 	"Types: ability-map for normal abilities, project-effects for active projects"

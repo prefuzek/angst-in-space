@@ -2,24 +2,29 @@
 	(:require [angst.library.utils :refer :all]
 			  [angst.library.data :refer :all]
 			  [angst.library.setup :refer :all]
-			  [angst.library.network :refer :all]))
+			  [angst.library.network :refer :all]
+              [angst.library.turn :refer :all]
+        [angst.library.gcomponents :as g]))
 
 ; idea: add a permissions parameter to each effect, governing whether host/client can use the effect
 ; alternatively, add a tag to the buttons?
 
 (def effects
-	;each effect takes one argument, state, and possibly others (documented under args)
+	;each effect takes one argument (state), and possibly others (documented under args)
   {:new-game
   	;starts a new game
-  	#(if (>= (count (:empires %)) 2) (new-game %) %)
+  	#(if (>= (count (:empires %)) 2)
+          (-> % (new-game)
+                (do-effects effects [[:add-gcomponent :map] [:add-gcomponent :infobar] [:remove-gcomponent :main-menu]]))
+          %)
   :save
-  	;saves the gamestate to save.tstatet, returns state unchanged
-  	#(do (spit "save.tstatet" %) %)
+  	;saves the gamestate to save.txt, returns state unchanged
+  	#(do (spit "save.txt" %) %)
   :write-server-data
   	;updates serverdata to new state and signals that clients need to update
   	#(do (reset! serverdata %) (reset! client-update-required true) %)
   :load
-  	;loads gamestate from save.tstatet
+  	;loads gamestate from save.txt
   	;notes: ignores state
   	(fn [x] (load-file "save.txt"))
   :menu
@@ -55,7 +60,7 @@
   	;cancels using a planet's ability
   	#(-> % (assoc-in [:active-planet] false)
        	   (update-phase-label)
-  		   (change-buttons [:cancel-ability] [:end-phase]))
+  		     (change-buttons [:cancel-ability] [:end-phase]))
   :change-buttons
   	;wrapper for change-buttons fn
   	;args removed added
@@ -72,9 +77,25 @@
   	 			(reset! online-state nil)
   	 			state))
   :join-server
-  	(fn [state] (do (if (get-host-state state (get-address)) 
-  						(reset! online-state "client")	)
+  	(fn [state] (do (if (get-host-state state (get-address state)) 
+  						(reset! online-state "client"))
   				state))
   :leave-server
   	(fn [state] (do (reset! online-state nil)))
+  :add-gcomponent
+    ;adds a graphics component to state
+    ;args: component
+    (fn [state component]
+      (-> state (update-in [:components] #(vec (conj % component)))
+                (update-in [:buttons] #(merge % (select-keys button-map (:buttons (component g/components)))))
+                (update-in [:active-component] #(into % (:active (component g/components))))
+                (update-in [:active-text-input] #(if-let [input (:text-input (component g/components))] (conj % input) %))))
+  :remove-gcomponent
+    ;removes a graphics component from state
+    ;args: component
+    (fn [state component]
+      (-> state (update-in [:components] #(vec (remove (fn [c] (= c component)) %)))
+                (update-in [:buttons] #(reduce dissoc % (:buttons (component g/components))))
+                (update-in [:active-component] #(vec (remove (fn [c] (= c component)) %)))
+                (update-in [:active-text-input] #(vec (remove (fn [i] (= i (:text-input (component g/components)))) %)))))
   	})

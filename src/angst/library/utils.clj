@@ -95,20 +95,6 @@
 	[state p1 p2]
 	(= (get-planet-empire state p1) (get-planet-empire state p2)))
 
-(defn develop-all
-	"Increases all the active player's planets development by one"
-  [state]
-  (reduce (fn [x y] (update-planet-value x y :development #(min 7 (inc %))))
-                    state
-                    (map first (filter #(= (:colour (second %)) (:colour (empire state))) (vec (:planets state))))))
-
-(defn reset-all-used
-	"Sets all planets to :used false"
-	[state]
-  (reduce (fn [x y] (set-planet-value x y :used false))
-                     state
-                     (map first (vec (:planets state)))))
-
 (defn toggle-empire
   "Toggles an empire button"
   [state button empire]
@@ -148,11 +134,6 @@
 	(let [num-less (count (filter #(> (get-num-planets state (:active state)) (get-num-planets state (first %))) (vec (:empire state))))]
 		(add-points state (:active state) num-less (= (:major (empire state)) "Imperialists"))))
 
-(defn get-next-player
-  "Changes the active player"
-  [state]
-   (assoc-in state [:active] ((:active state) (:next-player-map state))))
-
 (defn effect-active?
 	"Predicate to determine if an effect is active"
 	[state effect]
@@ -162,55 +143,15 @@
 	"Removes all ongoing effects that should expire"
 	[state]
 	(-> state
+		(update-in [:effect-details] #(apply dissoc % ((:active state) (:constant-effects state))))
 		(assoc-in [:constant-effects (:active state)] [])
+		(update-in [:effect-details] #(apply dissoc % (:turn-end (:constant-effects state))))
 		(assoc-in [:constant-effects :turn-end] [])))
 
-(defn add-progress
-	[state planet amount]
-	(if (and (= (get-planet-empire state planet) (get-planet-empire state :Jaid)) (effect-active? state :Jaid))
-		(update-planet-value state planet :progress #(+ % (inc amount)))
-		(update-planet-value state planet :progress #(+ % amount))))
-
-(defn update-projects
-	[state]
-	(letfn [(update-planet
-				[state planet]
-				(cond (= (-> state :planets planet :project) "active")
-						(if (= (get-planet-empire state planet) (:active state))
-							(-> state
-								(add-progress planet 1)
-								(set-planet-value planet :used true))
-							state)
-					(= (-> state :planets planet :project) "inactive")
-						(set-planet-value state planet :progress 0)
-					:else state))]
-		(reduce update-planet state (map first (vec (:planets state))))))
-
-(defn end-project
+(defn planet-alert?
 	[state planet]
-	(if (-> state :planets planet :project)
-		(-> state
-			(set-planet-value planet :project "inactive")
-			(set-planet-value planet :used false)
-			;(set-planet-value planet :progress 0)) -- test to solve project structure weirdness
-			)
-		state))
-
-(defn end-turn
-	"Performs end-of-turn updates"
-	[state]
-  (-> state
-      reset-all-used
-      develop-all
-      (assoc-in [:phase] 0)
-      (assoc-in [:buttons :end-phase :label] "End Specialization Phase")
-      (update-empire-value (:active state) :resources
-        #(- % (get upkeep (get-num-planets state (:active state)))))
-      (add-points (:active state) 1 (= (:major (empire state)) "Immortals"))
-      get-next-player
-      update-projects      
-      update-effects
-      imperial-points))
+	"Predicate to determine if there is an ongoing effect on a planet"
+	(member? planet (vals (:effect-details state))))
 
 (defn change-buttons
 	"Consumes two vectors of keys; one of buttons that are removed and one of buttons that are added"
@@ -296,6 +237,29 @@
 		   		 	(recur (rest words) (str newtext "\n" (first words) " "))
 		   		 :else (recur (rest words) (str newtext (first words) " ")))))
 
+(defn get-plural [n singular plural]
+	(if (= n 1)
+		(str n " " singular)
+		(str n " " plural)))
+
 (defmacro thrush-list
 	[value funs]
 	(conj (conj funs value) '->))
+
+(defn set-fill [colour]
+  (cond (= colour "Blue")
+        (q/fill 160 360 255)
+    (= colour "White")
+      (q/fill 0 0 255)
+    (= colour "Yellow")
+      (q/fill 45 360 255)
+    (= colour "Green")
+      (q/fill 100 360 200)
+    (= colour "Red")
+      (q/fill 0 255 255)
+    (= colour "Pink")
+      (q/fill 220 255 255)
+    (= colour "Black")
+      (q/fill 0 0 0)
+    (= colour "Dark Grey")
+      (q/fill 0 0 50)))

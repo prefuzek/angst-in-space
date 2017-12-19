@@ -3,13 +3,16 @@
             [quil.middleware :as m]
             [angst.library.data :refer :all]
             [angst.library.graphics :refer :all]
+            [angst.library.gcomponents :refer :all]
             [angst.library.actions :refer :all]
             [angst.library.utils :refer :all]
             [angst.library.setup :refer :all]
             [angst.library.abilities :refer :all]
             [angst.library.effects :refer :all]
-            [angst.library.projects :refer :all]
-            [angst.library.network :refer :all])
+            [angst.library.network :refer :all]
+            [angst.library.textinput :refer :all]
+            [angst.library.turn :refer :all]
+            [angst.library.actionlog :as log])
   (:gen-class))
 
 (defn over-planet? [x y]
@@ -28,7 +31,10 @@
         (= (:phase state) "setup")
           false
 
-  		  (empty? vec-seq)
+        (not-empty (:active-component state)) ; A modal or something is active
+          false
+
+  		(empty? vec-seq)
           false
 
         (over-planet? (-> vec-seq first second :x) (-> vec-seq first second :y))
@@ -39,9 +45,15 @@
 (defn get-mouse-button 
   "Consumes a vec-seq of buttons and produces a [:button {button-info}] if one is moused over and otherwise false"
   [buttons]
-  (cond (empty? buttons) false
-        (over-button? (:x (second (first buttons))) (:y (second (first buttons))) (:width (second (first buttons))) (:height (second (first buttons))))
-        (first buttons)
+  	(cond (empty? buttons)
+  			false
+
+        (over-button? (:x (second (first buttons)))
+        			  (:y (second (first buttons)))
+        			  (:width (second (first buttons)))
+        			  (:height (second (first buttons))))
+        	(first buttons)
+
         :else (get-mouse-button (rest buttons))))
 
 (defn planet-action
@@ -64,7 +76,10 @@
 
 (defn mouse-pressed [state event]
    (let [planet (get-mouse-planet (seq (:planets state)) state)
-        button (get-mouse-button (:buttons state))] ;button is [:button {button-info}] or false
+   		active-buttons (if (not-empty (:active-component state))
+   							 (select-keys button-map (:buttons ((peek (:active-component state)) components)))
+   							 (:buttons state))
+        button (get-mouse-button active-buttons)] ;button is [:button {button-info}] or false
     (cond 
       planet
         (cond
@@ -84,7 +99,8 @@
           	   (member? planet (-> state :constant-effects :projects))
           	   (planet-active? state planet))
           	(if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
-          		(end-project state planet)
+          		(-> state (end-project planet)
+          				  (log/add-log-entry :end-project (:active state) planet))
           		(check-altu (use-ability state planet project-effects)))
 
           (and (= (:active state) (get-planet-empire state planet))
@@ -104,14 +120,17 @@
   (cond (= @online-state "host")
             (do-effects (mouse-pressed state event) effects [[:write-server-data]])
         (= @online-state "client")
-            (or (send-new-state (mouse-pressed state event) (get-address)) state)
+            (or (send-new-state (mouse-pressed state event) (get-address state)) state)
         :else
           (mouse-pressed state event)))
+
+(defn keypressed [state other]
+	(update-text-input state))
 
 (defn update-state [state]
   (do (reset! planet-info-display (get-mouse-planet (seq (:planets state)) state))
       (cond (= @online-state "client")
-              (get-host-state state (get-address))
+              (get-host-state state (get-address state))
             (= @online-state "host")
               (if @host-update-required
                     (let [newstate @host-update-required]
@@ -130,9 +149,10 @@
   :setup setup
   ; update-state is called on each iteration before draw-state.
   :update update-state
-  :draw draw-state
+  :draw draw
   :features [:resizable]
   :mouse-pressed mouse-pressed-wrap
+  :key-pressed keypressed
   :on-close shutdown
   ; This sketch uses functional-mode middleware.
   ; Check quil wiki for more info about middlewares and particularly

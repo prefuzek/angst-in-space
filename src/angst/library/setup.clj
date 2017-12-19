@@ -85,22 +85,29 @@
 		(assoc-in state [:planets] all-planets)
 		(assoc-in state [:planets] planet-map))))
 
+(defn game-settings
+	"Sets up the planets/objectives according to settings"
+	[state]
+	(if (member? "rand-start" (:options state))
+		(if (member? "goals" (:options state))
+			  (rand-start-planets (set-goals state))
+			(rand-start-planets state))
+		(if (member? "goals" (:options state))
+			  (fixed-start-planets (set-goals state))
+			(fixed-start-planets state))))
+
 (defn new-game
 	"Launches a new game according to settings"
 	[state]
-	(let [add-players (set-players init-state (:empires state))
-		  add-planets (get-planets add-players)]
-	(if (member? "rand-start" (:options state))
-		(if (member? "goals" (:options state))
-			  (rand-start-planets (set-goals add-planets))
-			(rand-start-planets add-planets))
-		(if (member? "goals" (:options state))
-			  (fixed-start-planets (set-goals add-planets))
-			(fixed-start-planets add-planets)))))
+	(-> state
+		(merge init-state)
+		(set-players (:empires state))
+		(get-planets)
+		(game-settings)))
 
 (defn setup []
-  ; Set frame rate to 10 frames per second.
-  (q/frame-rate 10)
+  ; Set frame rate to 20 frames per second.
+  (q/frame-rate 20)
   ; Set color mode to HSB (HSV) instead of default RGB.
   (q/color-mode :hsb)
   ; Set line color to grey
