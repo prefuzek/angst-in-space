@@ -19,11 +19,13 @@ REPL - run `(require 'angst.core)`.
 There are three ways to play:
 - Locally, taking turns at the computer
 - By email, sending the saved gamestate at the end of each turn. If you do this, just replace your old `save.txt` with the new one, then click 'Load' to get the new gamestate. (`save.txt` is created and read/written in the same directory as the .jar file.)
-- NEW AND EXPERIMENTAL: Online - see Section 6: Online Play
+- Online - see Section 5: Online Play
 
 ### 1. Setup:
 
-When you start the game, you'll be given a menu with options for starting a new game. There are five available empires - to start a game you must choose at least two. There are two additional options that you can toggle: Random Start and Objectives. 
+When you start the game, you'll have the choice of starting a local (offline) game, hosting an online game, or connecting to an online game. Here we'll go over starting a local game. For more information about online play, see section 5.
+
+There are five available empires - to start a game you must choose at least two. There are two additional options that you can toggle: Random Start and Objectives. 
 
 When you start the game, it will generate a galaxy based on how many empires are playing the game. If Random Start is turned on, each empire will start with two random connected planets. If it is left off, the game will use a pre-made setup (almost certainly more balanced than a random start). One of each player's planets will start with a higher development level.
 
@@ -109,15 +111,13 @@ That's all the rules! Eventually there will be more, as more features are implem
 
 ### 5. Online Play:
 
-As of version 0.6.0, you can now play online in real time! This feature is still very much in development and is therefore not very streamlined or stable yet, but it's completely functional.
+As of version 0.6.0, you can now play online in real time! This feature is still in development and is therefore not totally streamlined or stable yet, but it's completely functional.
 
-From the menu, you can start a server on your local network. If you want to play remotely, you'll need a tool like Hamachi to simulate a local network.
+From the main menu, you can host an online game. After choosing a name, this sets up a local server, which can be accessed by anyone on your local network. If you want to play remotely, you'll need a tool like Hamachi to simulate a local network.
 
-To connect to a server, you'll need to create a `hostaddress.txt` file in the directory with the .jar file. Put the IP address of the host in this file. Then, when you run the game, clicking the 'Join a server' button will connect you to the online game.
+If someone on your network is hosting a game, you can connect to it from the main menu. After entering a name and the host's IP, you'll be sent into a lobby with a list of connected players and a chatbar. The host has setup options for a new game, or can load from a previous save.
 
-All players in a server are essentially sharing a common gamestate, and each one has full control. It's recommended to have another communication channel; otherwise your play experience will be confused and rather soulless.
-
-Known issue: clients should not use the in-game 'Quit' button, since this causes the game to crash. Instead use the escape key.
+Once the game has started, you won't be able to interact with the game (besides menus and chat) except on your turn. If you leave and reconnect, you'll be put in the game's lobby with now way of playing the game. This will be fixed in a future version.
 
 ## License
 

@@ -63,17 +63,39 @@
 
 		(update-in state [:planets] #(reduce merge % (map align-planets (vec (:empire state)) (setups (count (:empire state))))))))
 
-(defn get-next-player-map
+(comment (defn get-next-player-map
 	([empires] (get-next-player-map empires 0 (count empires) {}))
 	([empires i end m]
 		(if (= i end) m
-			(get-next-player-map empires (inc i) end (merge m {(empires i) (empires (mod (inc i) end))})))))
+			(get-next-player-map empires (inc i) end (merge m {(empires i) (empires (mod (inc i) end))}))))))
+
+(defn get-next-player-map
+	[empires]
+	(loop [i 0 end (count empires) curr-map {}]
+		(if (= i end) curr-map
+			(recur (inc i) end (merge curr-map {(get empires i) (get empires (mod (inc i) end))})))))
+
+(defn create-empire-data
+	"Consumes a collection of keyword-string pairs and produces a map with starting empire data."
+	[empires]
+	(loop [empire-data {}
+		   i 0]
+		(if (< i (count empires))
+			(let [emp-name (second (get empires i))
+				  emp-key (first (get empires i))]
+				  (recur (assoc-in empire-data [emp-key] {:name emp-name :colour (get colours i) :resources 8 :vp 0 :major ""}) (inc i)))
+			empire-data)))
 
 (defn set-players
 	[state empires]
-	(merge state {:empire (select-keys all-empires empires)
-				  :active (first empires)
-				  :next-player-map (get-next-player-map (vec empires))}))
+	(if (= (:online-state state) :host)
+		(let [empire-names (vec (map #(vector (keyword (clojure.string/replace % " " "")) %) empires))]
+			(merge state {:empire (create-empire-data empire-names)
+						  :active (first (last empire-names))
+						  :next-player-map (get-next-player-map (vec (map first empire-names)))}))
+		(merge state {:empire (select-keys all-empires empires)
+					  :active (last empires)
+					  :next-player-map (get-next-player-map (vec empires))})))
 
 (defn get-planets
 	[state]
@@ -98,7 +120,9 @@
 
 (defn online-setup [state]
 	(if (= (:online-state state) :host)
-		(update-in state [:extra-update-data] #(into % [:components :active-component :active-text-input :buttons]))
+		(-> state
+			(update-in [:extra-update-data] #(into % [:components :active-component :active-text-input :buttons]))
+			(update-in [:online-alerts] #(assoc-in % [:new-game] nil)))
 		state))
 
 (defn new-game

@@ -140,10 +140,13 @@
       state))))
 
 (defn build-ship [state planet]
-  (-> state (update-in [:empire (:active state) :resources] #(- % 2))
-            (update-in [:planets planet :ships] inc)
-            (log/add-log-entry :build-ship (:active state) planet)
-            (end-project planet)))
+    (if (> (:resources (empire state)) 1)
+      (-> state 
+          (update-in [:empire (:active state) :resources] #(- % 2))
+          (update-in [:planets planet :ships] inc)
+          (log/add-log-entry :build-ship (:active state) planet)
+          (end-project planet))
+      state))
 
 (defn start-progress
     "Adds proper amount of progress when a project starts"

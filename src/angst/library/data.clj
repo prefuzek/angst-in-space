@@ -2,9 +2,12 @@
 
 (def online-state (atom nil))
 (def serverdata (atom nil))
+(def connected-players (atom #{}))
 (def host-update-required (atom false))
 (def planet-info-display (atom false))
 (def client-update-required (atom true))
+
+(def colours ["Blue" "Green" "Red" "Yello" "Pink"])
 
 (def all-empires
   {:Sheep {:name "Sheep" :colour "Blue" :resources 8 :vp 0 :major ""}
@@ -14,11 +17,19 @@
      :Flamingo {:name "Flamingo" :colour "Pink" :resources 8 :vp 0 :major ""}})
 
 (def button-map
-  {:setup-new-game {:label "Start new game!" :x 683 :y 500 :width 300 :height 50 :effect [[:new-game]]} ; gcomponents are updated by :new-game
-  :setup-load {:label "Load from save" :x 683 :y 550 :width 300 :height 50 :effect [[:load] [:remove-gcomponent :game-menu]]}
-  :start-server {:label "Host a server" :x 683 :y 600 :width 300 :height 50 :effect [[:start-server] [:change-buttons [:start-server] [:end-server]]]}
-  :end-server {:label "Shut down the server" :x 683 :y 600 :width 300 :height 50 :effect [[:stop-online] [:change-buttons [:end-server] [:start-server]]]}
-  :join-server {:label "Join a server" :x 683 :y 650 :width 300 :height 50 :effect [[:join-server]]}
+  {
+  ; Main menu
+  :setup-local-game {:label "Set up local game" :x 683 :y 250 :width 300 :height 50 :effect [[:remove-gcomponent :main-menu] [:add-gcomponent :setup-local]]}
+  :setup-online-game {:label "Host online game" :x 683 :y 300 :width 300 :height 50
+                      :effect [[:remove-gcomponent :main-menu] [:add-gcomponent :setup-host] [:add-gcomponent :choose-name] [:start-server]]}
+  :join-server {:label "Join an online game" :x 683 :y 350 :width 300 :height 50 :effect [[:add-gcomponent :set-host-ip] [:add-gcomponent :choose-name]]}
+
+  ; Game setup menu
+
+  :setup-back {:label "Back" :x 150 :y 25 :width 300 :height 50 :effect [[:stop-online] [:menu]]}
+  :load-save {:label "Load from save" :x 683 :y 550 :width 300 :height 50 :effect [[:load] [:remove-gcomponent :game-menu]]}
+  :start-local-game {:label "Start game!" :x 683 :y 600 :width 300 :height 50 :effect [[:remove-gcomponent :all] [:new-game]]}
+  :start-online-game {:label "Start game!" :x 683 :y 600 :width 300 :height 50 :effect [[:new-game]]}
   :choose-sheep {:label "Sheep Empire: No" :x 483 :y 220 :width 150 :height 40 :effect [[:toggle-empire :choose-sheep :Sheep]]}
   :choose-gopher {:label "Gopher Empire: No" :x 483 :y 260 :width 150 :height 40 :effect [[:toggle-empire :choose-gopher :Gopher]]}
   :choose-muskox {:label "Muskox Empire: No" :x 483 :y 300 :width 150 :height 40 :effect [[:toggle-empire :choose-muskox :Muskox]]}
@@ -26,21 +37,36 @@
   :choose-flamingo {:label "Flamingo Empire: No" :x 483 :y 380 :width 150 :height 40 :effect [[:toggle-empire :choose-flamingo :Flamingo]]}
   :opt-rand-start {:label "Random Start: Off" :x 883 :y 220 :width 150 :height 40 :effect [[:toggle-option :opt-rand-start "rand-start"]]}
   :opt-objectives {:label "Objectives: Off" :x 883 :y 260 :width 150 :height 40 :effect [[:toggle-option :opt-objectives "goals"]]}
+
+  ; Main game display
+
   :game-menu {:label "Options" :x 1000 :y 40 :width 80 :height 40 :effect [[:add-gcomponent :game-menu]]}
+  :end-phase {:label "End Specialization Phase" :x 1216 :y 305 :width 200 :height 50 :effect [[:end-phase]]}
+  :cancel-move {:label "Cancel" :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-move]]}
+  :done-command {:label "Done Command" :x 1216 :y 305 :width 200 :height 50 :effect [[:done-command]]}
+  :cancel-ability {:label "Done"  :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-ability]]}
+
+  ; In-game options menu
+
   :game-menu-back {:label "Back" :x 683 :y 325 :width 80 :height 40 :effect [[:remove-gcomponent :game-menu]]}
   :game-save {:label "Save" :x 683 :y 375 :width 80 :height 40 :effect [[:save] [:add-gcomponent :save-success]]}
   :accept-save-success {:label "OK" :x 683 :y 375 :width 80 :height 40 :effect [[:remove-gcomponent :save-success]]}
   :game-load {:label "Load" :x 683 :y 425 :width 80 :height 40 :effect [[:load] [:remove-gcomponent :game-menu]]}
   :game-quit {:label "Quit" :x 683 :y 475 :width 80 :height 40 :effect [[:stop-online] [:menu]]}
-  :end-phase {:label "End Specialization Phase" :x 1216 :y 305 :width 200 :height 50 :effect [[:end-phase]]}
-  :cancel-move {:label "Cancel" :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-move]]}
-  :done-command {:label "Done Command" :x 1216 :y 305 :width 200 :height 50 :effect [[:done-command]]}
-  :cancel-ability {:label "Done"  :x 1216 :y 305 :width 200 :height 50 :effect [[:cancel-ability]]}
-  :accept-could-not-connect {:label "OK" :x 683 :y 410 :width 80 :height 40 :effect [[:remove-gcomponent :could-not-connect-message]]}})
+
+  ; Modal acceptance
+
+  :accept-could-not-connect {:label "OK" :x 683 :y 410 :width 80 :height 40 :effect [[:remove-gcomponent :could-not-connect-message]]}
+  :accept-choose-name {:label "OK" :x 683 :y 410 :width 80 :height 40 :effect [[:set-name]]}
+  :accept-set-ip {:label "OK" :x 683 :y 410 :width 80 :height 40 :effect [[:remove-gcomponent :set-host-ip] [:join-server]]}
+  :accept-connection-lost {:label "Go Offline" :x 683 :y 410 :width 80 :height 40
+                           :effect [[:remove-gcomponent :connection-lost] [:leave-server] [:change-buttons [] [:end-phase]]]}}
+ )
 
 (def text-inputs
-  {:ip-input {:x 683 :y 730 :width 150 :height 20 :value "" :max-length 20 :rect-mode :center :text-align :center :text-offset-x 0 :text-offset-y 5}
-   :chat-input {:x 1066 :y 746 :width 298 :height 20 :value "" :max-length 40 :rect-mode :corner :text-align :left :text-offset-x 4 :text-offset-y 15}})
+  {:ip-input {:x 683 :y 350 :width 150 :height 20 :value "" :max-length 20 :rect-mode :center :text-align :center :text-offset-x 0 :text-offset-y 5}
+   :chat-input {:x 1066 :y 746 :width 298 :height 20 :value "" :max-length 40 :rect-mode :corner :text-align :left :text-offset-x 4 :text-offset-y 15}
+   :name-input {:x 683 :y 350 :width 150 :height 20 :value "" :max-length 30 :rect-mode :center :text-align :center :text-offset-x 0 :text-offset-y 5}})
 
 (def phase-labels
   ["End Specialization Phase" "End Production Phase" "End Command Phase" "End Construction Phase" "Done Colonizing"])
@@ -49,8 +75,7 @@
   {:phase "setup"
    :options #{}
    :empires #{}
-   :buttons (select-keys button-map [:setup-new-game :setup-load :choose-sheep :choose-flamingo :choose-llama :choose-muskox :choose-gopher
-                                     :opt-objectives :opt-rand-start :start-server :join-server])
+   :buttons (select-keys button-map [:setup-local-game :setup-online-game :join-server])
    :components [:main-menu]
    :active-component [] ;active-component is a stack determining which component can be interacted with
    :text-inputs text-inputs
@@ -61,7 +86,7 @@
 (def init-state
   {:planets {}
    :empire {}
-   :active :Sheep
+   :active nil
    :phase 0 ;0: Specialization, 1 Production, 2 Command, 3 Construction, 4 Colonization
    :active-planet false ; Either false or planet keyword
    :next-player-map {}
@@ -110,7 +135,8 @@
    :Caia {:name "Caia" :colour "Black" :x 500 :y 85
         :connections [:Chiu :Xosa :Path :Quinz :Echemmon] :ships 0 :moved 0 :ship-colour "Black"
            :production [1 1 1 1 1 1 1 1] :development -1 :used false :project "inactive" :progress 0
-        :ability "Project: Spend 7 \u00A7 to destroy a planet. During the Specialization phase, you may  spend \u0398 equal to the amountof \u00A7 on Caia  to add 1\u00A7."}
+        :ability "Project: Spend 7 \u00A7 to destroy a planet. During the Specialization phase, you may  spend \u0398
+         equal to the amountof \u00A7 on Caia  to add 1\u00A7."}
 
    :Xosa {:name "Xosa" :colour "Black" :x 485 :y 220
         :connections [:Echemmon :Caia :Algoa :Fignon :Path :Altu] :ships 0 :moved 0 :ship-colour "Black"

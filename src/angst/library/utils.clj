@@ -27,6 +27,13 @@
 	[state empire type fun]
 	(update-in state [:empire empire type] fun))
 
+(defn active-player?
+	"When online, determines if user is the active player"
+	[state]
+	(if (= (:phase state) "setup")
+			true
+			(= (:online-name-key state) (:active state))))
+
 (defn scaley
   "Scales a number to the user's screen height"
   [n]
@@ -64,21 +71,21 @@
 
 (defn get-colour-empire
 	"Produces the empire (a keyword) associated with a colour"
-	[colour]
+	[empires colour]
 	(if (= colour "Black")
 		nil
-		(first (first (filter #(= (:colour (second %)) colour) (vec d/all-empires))))))
+		(first (first (filter #(= (:colour (second %)) colour) (vec empires))))))
 
 (defn get-planet-empire
 	"Produces the empire (a keyword) that controls a planet"
 	[state planet]
-	(get-colour-empire (:colour (planet (:planets state)))))
+	(get-colour-empire (:empire state) (:colour (planet (:planets state)))))
 
 (defn get-planet-ship-empire
 	"Produces the empire (a keyword) that has ships on a planet"
 	[state planet]
 	(if (= (-> state :planets planet :ships) 0) "Black"
-		(get-colour-empire (:ship-colour (planet (:planets state))))))
+		(get-colour-empire (:empire state) (:ship-colour (planet (:planets state))))))
 
 (defn planet-active?
 	"Predicate to check if planet belongs to active player"

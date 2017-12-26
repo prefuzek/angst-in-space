@@ -54,6 +54,9 @@
   [state]
    (assoc-in state [:active] ((:active state) (:next-player-map state))))
 
+(defn online-update-button [state]
+	(if (not= (:online-state state) :offline) (update-in state [:buttons] #(dissoc % :end-phase)) state))
+
 (defn end-turn
 	"Performs end-of-turn updates"
 	[state]
@@ -69,4 +72,5 @@
       (log/add-log-entry :end-turn (:active state) (:resources (empire state)) (:vp (empire state)))
       update-projects      
       update-effects
-      imperial-points))
+      imperial-points
+      online-update-button))

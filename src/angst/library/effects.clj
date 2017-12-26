@@ -6,8 +6,7 @@
         [angst.library.turn :refer :all]
         [angst.library.gcomponents :as g]))
 
-; idea: add a permissions parameter to each effect, governing whether host/client can use the effect
-; alternatively, add a tag to the buttons?
+; TODO: replace #(foo %) syntax with (fn [x] (foo x)) for all top-level effects
 
 (def effects
 	;each effect takes one argument (state), and possibly others (documented under args)
@@ -15,7 +14,7 @@
   	;starts a new game
   	#(if (>= (count (:empires %)) 2)
           (-> % (new-game)
-                (do-effects effects [[:add-gcomponent :map] [:add-gcomponent :infobar] [:remove-gcomponent :main-menu]]))
+                (do-effects effects [[:remove-gcomponent :all] [:add-gcomponent :map] [:add-gcomponent :infobar]]))
           %)
 
   :save
@@ -24,7 +23,9 @@
 
   :write-server-data
   	;updates serverdata with necessary data and wipes :extra-update-data
-  	#(do (reset! serverdata (select-keys % (into (:extra-update-data %) shared-state))) (assoc-in % [:extra-update-data] []))
+  	#(do (reset! serverdata (select-keys % (into (:extra-update-data %) shared-state)))
+         (reset! client-update-required true)
+         (assoc-in % [:extra-update-data] []))
 
   :load
   	;loads gamestate from save.txt
@@ -32,9 +33,8 @@
   	(fn [x] (load-file "save.txt"))
 
   :menu
-  	;sets gamestate to menu
-  	;notes: ignores state
-  	(constantly setup-state)
+  	;sets gamestate to menu, ends server/disconnects from server
+    (constantly setup-state)
 
   :toggle-empire
   	;wrapper for toggle-empire fn
@@ -78,31 +78,35 @@
   	change-buttons
 
   :start-server
-  	(fn [state] (do (.start host-server)
-                    (-> state
-                        (assoc-in [:online-state] :host)
-                        (assoc-in [:clients] [])
-                        (assoc-in [:extra-update-data] []))))
+  	(fn [state] (.start host-server)
+                (reset! connected-players #{})
+                (-> state
+                    (assoc-in [:online-state] :host)
+                    (assoc-in [:clients] [])
+                    (assoc-in [:extra-update-data] [])))
 
-  :stop-online
-  	(fn [state] (do (if (= (:online-state state) :host)
-  					 (.stop host-server)
-  					 (reset! serverdata nil)) ; TODO: Is serverdata still necessary? probably
-                    (assoc-in state [:online-state] :offline)))
+  :stop-server
+    (fn [state] (.stop host-server)
+                (reset! serverdata nil)
+                (assoc-in state [:online-state] :offline))
 
   :join-server
-  	(fn [state] ;(do (if (get-host-state state (get-address state)) 
-  				;		(reset! online-state "client"))
-  				;state))
+  	(fn [state]
+      (if (connect state (get-address state))
+          (-> state 
+            (assoc-in [:online-state] :client)
+            (do-effects effects [[:add-gcomponent :setup-client] [:remove-gcomponent :main-menu]]))
+          (do-effects state effects [[:add-gcomponent :could-not-connect-message]])))
 
-                (if (can-connect? state (get-address state))
-                    (-> state 
-                      (assoc-in [:online-state] :client)
-                      (assoc-in [:data-to-send] []))
-                    (do-effects state effects [[:add-gcomponent :could-not-connect-message]])))
+  :leave-server
+  	(fn [state] (disconnect state (get-address state))
+                (assoc-in state [:online-state] :offline))
 
-  :leave-server ; TODO: May be unused, try removing
-  	(fn [state] (do (reset! online-state nil)))
+  :stop-online
+    (fn [state] (condp = (:online-state state)
+                  :host (do-effects state effects [[:stop-server]])
+                  :client (do-effects state effects [[:leave-server]])
+                  state))
 
   :add-gcomponent
     ;adds a graphics component to state
@@ -114,11 +118,28 @@
                 (update-in [:active-text-input] #(if-let [input (:text-input (component g/components))] (conj % input) %))))
 
   :remove-gcomponent
-    ;removes a graphics component from state
+    ;removes a graphics component from state (or all if component is :all)
     ;args: component
     (fn [state component]
-      (-> state (update-in [:components] #(vec (remove (fn [c] (= c component)) %)))
-                (update-in [:buttons] #(reduce dissoc % (:buttons (component g/components))))
-                (update-in [:active-component] #(vec (remove (fn [c] (= c component)) %)))
-                (update-in [:active-text-input] #(vec (remove (fn [i] (= i (:text-input (component g/components)))) %)))))
-  	})
+      (if (= component :all)
+        (-> state (assoc-in [:components] [])
+                  (assoc-in [:buttons] {})
+                  (assoc-in [:active-component] [])
+                  (assoc-in [:active-text-input] []))
+
+        (-> state (update-in [:components] #(vec (remove (fn [c] (= c component)) %)))
+                  (update-in [:buttons] #(reduce dissoc % (:buttons (component g/components))))
+                  (update-in [:active-component] #(vec (remove (fn [c] (= c component)) %)))
+                  (update-in [:active-text-input] #(vec (remove (fn [i] (= i (:text-input (component g/components)))) %))))))
+
+  :set-name
+    ;sets online name to name-input if input is non-empty, else does nothing
+    (fn [state]
+      (let [name-val (-> state :text-inputs :name-input :value)]
+        (if-not (= name-val "")
+          (do (swap! connected-players conj name-val)
+              (-> state (assoc-in [:online-name] name-val)
+                        (assoc-in [:online-name-key] (keyword (clojure.string/replace name-val " " "")))
+                        (do-effects effects [[:remove-gcomponent :choose-name]])))
+          state)))
+  })

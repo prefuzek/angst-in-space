@@ -33,10 +33,15 @@
 		(str "The " empire " Empire colonizes " planet "."))
 	:gain-points (fn [empire points]
 		(str "The " empire " Empire gains " points " points.")) ; Not in use yet
+	:player-join (fn [player]
+		(str player " has joined the game."))
+	:player-leave (fn [player]
+		(str player " has left the game."))
 	})
 
 (defn get-log-height [log]
-	(reduce #(+ %1 (* 20 (or (get (frequencies %2) \n) 1))) 0 log))
+	(letfn [(get-message-height [message] )])
+	(reduce #(+ %1 (* 20 (inc (or (get (frequencies %2) \newline) 0)))) 0 log))
 
 (defn drop-log-lines [log]
 	(loop [new-log log]
@@ -52,3 +57,11 @@
 		#(into [] 
 			(drop-log-lines 
 				(conj % (split-text-lines (apply (message messages) (sanitize args)) (scalex (- infobar-width 10))))))))
+
+(defn add-ability-entry [state message & args]
+	(if message
+		(update-in state [:action-log]
+		#(into [] 
+			(drop-log-lines 
+				(conj % (split-text-lines (apply message (sanitize args)) (scalex (- infobar-width 10)))))))
+		state))

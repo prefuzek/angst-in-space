@@ -15,4 +15,4 @@
 (def empire-display-top 350)
 (def empire-display-bottom 480)
 (def message-log-start 495)
-(def message-log-height (- screen-height empire-display-bottom 20))
+(def message-log-height (- screen-height empire-display-bottom 20)) ; Currently 272

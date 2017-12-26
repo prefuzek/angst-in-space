@@ -24,10 +24,7 @@
 
 (defn draw-menu [state]
   (q/background 0)
-  (text-display {"Angst In Space" {:align :center :x (scalex 683) :y (scaley 100) :size 40}
-           "Options" {:align :center :x (scalex 883) :y (scaley 180) :size 20}
-           "Empires" {:align :center :x (scalex 483) :y (scaley 180) :size 20}} 0 0)
-  (text-display {"Host IP" {:align :center :x 0 :y 0 :size 12}} (scalex 683) (scaley 715)))
+  (text-display {"Angst In Space" {:align :center :x (scalex 683) :y (scaley 100) :size 40}} 0 0))
 
 (defn draw-distance
   [x1 y1 x2 y2]
@@ -101,6 +98,8 @@
 
 (defn get-message [state]
   (cond 
+  	(and (not= (:online-state state) :offline) (not= (:online-name state) (:name (empire state))))
+  		(str "Waiting for the " (:name (empire state)) " Empire")
     (:ship-move (:effects state))
                   (str "Moving " (get-plural (:ships (:ship-move (:effects state))) "ship" "ships") " from "
                   	(:name ((:planet (:ship-move (:effects state))) (:planets state))))
@@ -134,14 +133,17 @@
              (if (:project planet) {:align :left :x 20 :y 100 :size 12})}
             (scalex 1066) 0))
 
+(defn draw-text-list [text-lines x y]
+	(loop [i 0 lines 0]
+		(if (< i (count text-lines))
+			(do
+				(q/text (get text-lines i) (scalex x) (scaley (+ y (* lines 20))))
+				(recur (inc i) (+ lines (count (clojure.string/split-lines (get text-lines i)))))))))
+
 (defn draw-action-log [action-log]
 	(q/text-align :left)
-	(loop [i 0
-		   lines 0]
-		(if (< i (count action-log))
-			(do 
-				(q/text (get action-log i) (scalex (+ infobar-right-edge 10)) (scaley (+ message-log-start (* lines 20))))
-				(recur (inc i) (+ lines (count (clojure.string/split-lines (get action-log i))))))))
+	(set-fill "White")
+	(draw-text-list action-log (+ infobar-right-edge 10) message-log-start)
 	(q/text-align :center))
 
 (defn draw-infobar [state]
@@ -158,13 +160,16 @@
     (draw-planet-info (@planet-info-display (:planets state))))
 
   ;Empire info
-  (text-display {(str (:name (empire state)) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
-                 (:major (empire state)) {:align :center :x (scalex 150) :y 42 :size 12}
-                 (str "Resources: " (:resources (empire state))) {:align :left :x 20 :y 60 :size 12}
-                 (str "Victory Points:" (:vp (empire state))) {:align :left :x 20 :y 80 :size 12}
-                 (str "Upkeep: " (get upkeep (get-num-planets state (:active state)))) {:align :left :x 20 :y 100 :size 12}}
+  (let [my-empire (if (= (:online-state state) :offline)
+  						(empire state) 
+  						((:online-name-key state) (:empire state)))]
+  (text-display {(str (:name my-empire) " Empire") {:align :center :x (scalex 150) :y 20 :size 18}
+                 (:major my-empire) {:align :center :x (scalex 150) :y 42 :size 12}
+                 (str "Resources: " (:resources my-empire)) {:align :left :x 20 :y 60 :size 12}
+                 (str "Victory Points:" (:vp my-empire)) {:align :left :x 20 :y 80 :size 12}
+                 (str "Upkeep: " (get upkeep (get-num-planets state my-empire))) {:align :left :x 20 :y 100 :size 12}}
                  right-edge
-                 (scaley empire-display-top)))
+                 (scaley empire-display-top))))
 
   ;Message above button
   (let [message (get-message state)]
@@ -174,8 +179,18 @@
   ;Action log
   (draw-action-log (:action-log state)))
 
-(defn draw-game-menu [state]
+(defn draw-modal [state width height text fontsize]
 	(set-fill "Dark Grey")
+	(q/rect-mode :center)
+	(q/rect (/ (q/width) 2) (/ (q/height) 2) width height 10)
+	(q/rect-mode :corner)
+	(set-fill "White")
+	(text-display {text {:align :center :x 0 :y (+ (- (/ height 2)) 25) :size fontsize}} (/ (q/width) 2) (/ (q/height) 2)))
+
+(defn draw-game-menu [state]
+	(draw-modal state 300 350 "Options" 24))
+	
+	(comment (set-fill "Dark Grey")
 	(q/rect-mode :center)
 	(q/rect (/ (q/width) 2) (/ (q/height) 2) 300 350 10)
 	(q/rect-mode :corner)
@@ -183,7 +198,9 @@
 	(text-display {"Options" {:align :center :x 0 :y -125 :size 24}} (/ (q/width) 2) (/ (q/height) 2)))
 
 (defn draw-save-confirm [state]
-	(set-fill "Dark Grey")
+	(draw-modal state 400 200 "Save successful!" 18))
+	
+	(comment (set-fill "Dark Grey")
 	(q/rect-mode :center)
 	(q/rect (/ (q/width) 2) (/ (q/height) 2) 400 200 10)
 	(q/rect-mode :corner)
@@ -191,37 +208,112 @@
 	(text-display {"Save successful!" {:align :center :x 0 :y -75 :size 18}} (/ (q/width) 2) (/ (q/height) 2)))
 
 (defn draw-could-not-connect [state]
-	(set-fill "Dark Grey")
+	(draw-modal state 400 200 "Could not connect." 18))
+
+	(comment (set-fill "Dark Grey")
 	(q/rect-mode :center)
 	(q/rect (/ (q/width) 2) (/ (q/height) 2) 400 200 10)
 	(q/rect-mode :corner)
 	(set-fill "White")
 	(text-display {"Could not connect." {:align :center :x 0 :y -75 :size 18}} (/ (q/width) 2) (/ (q/height) 2)))
 
+(defn draw-setup-local [state])
+
+(defn draw-setup-online [state]
+	;player list
+
+	(q/text-size 18)
+	(q/text "Players:" (scalex 200) (scaley 200))
+	(draw-text-list (vec (:empires state)) 200 230)
+	(q/text-size 12)
+
+	;chatlog
+	(set-fill "Black")
+	(q/rect-mode :corner)
+	(q/rect infobar-right-edge (- message-log-start 15) infobar-width (+ message-log-height 20) 0)
+	(draw-action-log (:action-log state)))
+
+(defn draw-choose-name [state]
+	(draw-modal state 400 200 "Choose your name:" 18))
+
+(defn draw-set-host-ip [state]
+	(draw-modal state 400 200 "Host IP Address:" 18))
+
+(defn draw-connection-lost [state]
+	(draw-modal state 400 200 "Connection Lost :(\nAttempting to reconnect" 18))
+
 (def components
-	{:main-menu {:draw-fn draw-menu
-				 :active '()
-				 :buttons [:setup-new-game :setup-load :start-server :end-server :join-server :choose-sheep :choose-gopher :choose-muskox
-											  :choose-llama :choose-flamingo :opt-rand-start :opt-objectives]
-				 :text-input :ip-input}
-	 :could-not-connect-message {:draw-fn draw-could-not-connect
-	 							 :active '(:could-not-connect-message)
-	 							 :buttons [:accept-could-not-connect]
-	 							 :text-input nil}
-	 :map {:draw-fn draw-map
-	 	   :active '()
-	 	   :buttons [:game-menu]
-	 	   :text-input nil}
-	 :infobar {:draw-fn draw-infobar
-	 		   :active '()
-	 		   :buttons [:end-phase]
-	 		   :hidden-buttons [:cancel-move :done-command :cancel-ability]
-	 		   :text-input :chat-input}
-	 :game-menu {:draw-fn draw-game-menu
-	 			 :active '(:game-menu)
-	 			 :buttons [:game-menu-back :game-save :game-load :game-quit]
-	 			 :text-input nil}
-	 :save-success {:draw-fn draw-save-confirm
-	 				:active '(:save-success)
-	 				:buttons [:accept-save-success]
-	 				:text-input nil}})
+	{:main-menu
+		{:draw-fn draw-menu
+		 :active '()
+		 :buttons [:setup-local-game :setup-online-game :join-server]
+		 :text-input nil}
+
+	 :setup-local
+	 	{:draw-fn draw-setup-local
+	 	 :active '()
+	 	 :buttons [:setup-back :load-save :start-local-game :choose-sheep :choose-gopher
+	 	 		   :choose-muskox :choose-llama :choose-flamingo :opt-rand-start :opt-objectives]
+	 	 :text-input nil}
+
+	 :setup-host
+	 	{:draw-fn draw-setup-online
+	 	 :active '()
+	 	 :buttons [:setup-back :load-save :start-online-game :opt-rand-start :opt-objectives]
+	 	 :text-input :chat-input}
+
+	 :setup-client
+
+	 	{:draw-fn draw-setup-online
+	 	 :active '()
+	 	 :buttons [:setup-back]
+	 	 :text-input :chat-input}
+
+	 :choose-name
+	 	{:draw-fn draw-choose-name
+	 	 :active '(:choose-name)
+	 	 :buttons [:accept-choose-name]
+	 	 :text-input :name-input}
+
+	 :set-host-ip
+	 	{:draw-fn draw-set-host-ip
+	 	 :active '(:set-host-ip)
+	 	 :buttons [:accept-set-ip]
+	 	 :text-input :ip-input}
+
+	 :could-not-connect-message
+	 	{:draw-fn draw-could-not-connect
+		 :active '(:could-not-connect-message)
+		 :buttons [:accept-could-not-connect]
+		 :text-input nil}
+
+	 :map
+	 	{:draw-fn draw-map
+ 	     :active '()
+ 	     :buttons [:game-menu]
+ 	     :text-input nil}
+
+	 :infobar
+	 	{:draw-fn draw-infobar
+	     :active '()
+	     :buttons [:end-phase]
+	     :hidden-buttons [:cancel-move :done-command :cancel-ability]
+	     :text-input :chat-input}
+
+	 :game-menu
+	 	{:draw-fn draw-game-menu
+		 :active '(:game-menu)
+		 :buttons [:game-menu-back :game-save :game-load :game-quit]
+		 :text-input nil}
+
+	 :save-success
+	 	{:draw-fn draw-save-confirm
+		 :active '(:save-success)
+		 :buttons [:accept-save-success]
+		 :text-input nil}
+
+	 :connection-lost
+	    {:draw-fn draw-connection-lost
+	     :active '(:connection-lost)
+	     :buttons [:accept-connection-lost]
+	     :text-input nil}})
