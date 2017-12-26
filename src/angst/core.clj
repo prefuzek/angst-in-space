@@ -61,17 +61,11 @@
   [state planet]
   (if (-> state :planets planet :used)
         state
-      (cond
-        (= (:phase state) 0)
-          (check-altu (use-ability state planet ability-map))
-        (= (:phase state) 3)
-          (if (> (:resources (empire state)) 1)
-            (build-ship state planet)
-            state)
-        (= (:phase state) 2)
-          (begin-command state planet)
-        (= (:phase state) 1)
-          (get-resources state planet)
+      (condp = (:phase state)
+        0 (check-altu (use-ability state planet ability-map))
+        1 (get-resources state planet)
+        2 (begin-command state planet)
+        3 (build-ship state planet)
         :else state)))
 
 (defn planet-clicked [state planet]
@@ -92,9 +86,9 @@
                (member? planet (-> state :constant-effects :projects))
                (planet-active? state planet))
             (if (and (= (q/mouse-button) :right) (= (-> state :planets planet :project) "active"))
-                (-> state (end-project planet)
-                          (log/add-log-entry :end-project (:active state) planet))
-                (check-altu (use-ability state planet project-effects)))
+	                (-> state (end-project planet)
+	                          (log/add-log-entry :end-project (:active state) planet))
+	                (check-altu (use-ability state planet project-effects)))
 
           (and (= (:active state) (get-planet-empire state planet))
             (not (and (effect-active? state :Ryss) (= planet (:Ryss (:effect-details state)))))) ; Rys's ability check
@@ -112,18 +106,21 @@
    							 (:buttons state))
         button (get-mouse-button active-buttons)]
 
-	(letfn [(online-wrapper [state]
+	(letfn [(object-type-wrapper [state]
+				(cond 
+			      (and planet
+			      	   (or (= (:online-state state) :offline) (active-player? state))) ; When online, can only interact on your turn
+			      	(planet-clicked state planet)
+			      button 
+			      	(do-effects state effects (:effect (second button)))
+			      :else state))
+
+			(online-wrapper [state]
 				(cond (= (:online-state state) :host)
             			(do-effects state effects [[:write-server-data]])
 	        		(= (:online-state state) :client)
 	            		(do (send-new-state state (get-address state)) state)
-	        		:else state))
-
-			(object-type-wrapper [state]
-				(cond 
-			      planet (planet-clicked state planet)
-			      button (do-effects state effects (:effect (second button)))
-			      :else state))]
+	        		:else state))]
 
 			(-> state
 				(object-type-wrapper)
@@ -132,15 +129,54 @@
 (defn keypressed [state other]
 	(update-text-input state))
 
+(defn update-players-message [state]
+	(let [old-players (:empires state)
+		  new-players @connected-players
+		  diff (- (count new-players) (count old-players))]
+		(cond 
+			(= diff 0)
+				(assoc-in state [:empires] new-players)
+			(> diff 0)
+				(-> state
+					(assoc-in [:empires] new-players)
+					(log/add-log-entry :player-join (first (vec (clojure.set/difference new-players old-players))))
+					(do-effects effects [[:write-server-data]]))
+			(< diff 0)
+				(-> state
+					(assoc-in [:empires] new-players)
+					(log/add-log-entry :player-leave (first (vec (clojure.set/difference old-players new-players))))
+					(do-effects effects [[:write-server-data]])))))
+
+(defn update-buttons [oldstate newstate]
+	(cond
+		; Remove action button for non-active players
+		(not (active-player? newstate))
+			(change-buttons newstate [:end-phase] [])
+
+		; Turn begins: add action button for new active player
+		(and (not (active-player? oldstate)) (active-player? newstate))
+			(change-buttons newstate [] [:end-phase])
+
+		:else newstate))
+
+(defn update-client-state
+	[state]
+	(try (-> state 
+			(update-buttons (get-host-state state (get-address state)))
+			(do-effects effects [[:remove-gcomponent :connection-lost]]))
+		 (catch Exception e
+		 	(do-effects state effects [[:add-gcomponent :connection-lost]]))))
+
 (defn update-state [state]
   (do (reset! planet-info-display (get-mouse-planet (seq (:planets state)) state))
       (cond (= (:online-state state) :client)
-              (get-host-state state (get-address state))
+              (update-client-state state)
             (= (:online-state state) :host)
               (if-let [newstate @host-update-required]
                       (do (reset! host-update-required false)
-                          (merge state newstate))
-                    state)
+                          (update-buttons state (merge state newstate)))
+                    (-> state
+                    	(update-players-message)))
             :else state)))
 
 (defn shutdown [state]
